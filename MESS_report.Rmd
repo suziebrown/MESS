@@ -10,8 +10,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 # Load the data
 ```{r}
-
-
 ###http://www.sciencedirect.com/science/article/pii/S0140673605666949?via%3Dihub LANCET ARTICLE MARSON 2005
 
 mess <- read_delim("~/Documents/Module 2/MESS/MESSdat.csv", "\t", escape_double = FALSE, trim_ws = TRUE)
