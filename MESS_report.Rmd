@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Load the data
 ```{r}
 ###http://www.sciencedirect.com/science/article/pii/S0140673605666949?via%3Dihub LANCET ARTICLE MARSON 2005
-
+library(readr)
 mess <- read_delim("~/Documents/Module 2/MESS/MESSdat.csv", "\t", escape_double = FALSE, trim_ws = TRUE)
 #mess[,substr(names(mess),1,2)=="d1"] <- as.Date(mess[,which(substr(names(mess),1,2)=="d1")])
 mess$d1sp<-as.Date(mess$d1sp,"%d/%m/%y")
