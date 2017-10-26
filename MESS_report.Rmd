@@ -2,7 +2,7 @@
 title: "MESS"
 author: "Suzie Brown and Marco Palma"
 date: "26 October 2017"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -10,5 +10,40 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 # Load the data
 ```{r}
-mess <- read.csv("MESSdat.csv", header=TRUE)
+
+
+###http://www.sciencedirect.com/science/article/pii/S0140673605666949?via%3Dihub LANCET ARTICLE MARSON 2005
+
+mess <- read_delim("~/Documents/Module 2/MESS/MESSdat.csv", "\t", escape_double = FALSE, trim_ws = TRUE)
+#mess[,substr(names(mess),1,2)=="d1"] <- as.Date(mess[,which(substr(names(mess),1,2)=="d1")])
+mess$d1sp<-as.Date(mess$d1sp,"%d/%m/%y")
+mess$d1cp<-as.Date(mess$d1cp,"%d/%m/%y")
+mess$d1ps<-as.Date(mess$d1ps,"%d/%m/%y")
+mess$d1myo<-as.Date(mess$d1myo,"%d/%m/%y")
+mess$d1ab<-as.Date(mess$d1ab,"%d/%m/%y")
+mess$d1aab<-as.Date(mess$d1aab,"%d/%m/%y")
+mess$d1tc<-as.Date(mess$d1tc,"%d/%m/%y")
+mess$d1oth<-as.Date(mess$d1oth,"%d/%m/%y")
+mess$d1seiz<-as.Date(mess$d1seiz,"%d/%m/%y")
+mess$rand<-as.Date(mess$rand,"%d/%m/%y")
+summary(mess)
+summary(mess$int1yr[mess$ind1yr==1])  ###ind1yr==1 means that the subject was observed
+summary(mess$int1yr[mess$ind1yr==0])  ###ind1yr==0 indicates censoring
+hist(mess$ager,breaks=20)  # age at time of randomization is positively skewed - expected because they are people with recent diagnosis of epilepsy
+mess$trt # more or less equal allocation to treatment 
+table(mess$centre) # identification number for hospital?
+mess$centre <- as.factor(mess$centre) # do we group them? But it is arbitrary!
+all.equal(which(is.na(mess$d1seiz)),which(is.na(mess$period)))  #they are probably not MCAR because the event could have benn happened too long ago to remember it (or we do not have medical records for that)
+mess$eeg <- ifelse(mess$eeg==2,0,mess$eeg)   ### recoded NO as 0, YES as 1
+mess$abeeg <- ifelse(mess$abeeg==2,0,mess$abeeg)
+mess$nsab <- ifelse(mess$nsab==2,0,mess$nsab)
+mess$gparsp <- ifelse(mess$gparsp==2,0,mess$gparsp)
+mess$gparnsp <- ifelse(mess$gparnsp==2,0,mess$gparnsp)
+mess$fparsp <- ifelse(mess$fparsp==2,0,mess$fparsp)
+mess$fparnsp <- ifelse(mess$fparnsp==2,0,mess$fparnsp)
+mess$swab <- ifelse(mess$swab==2,0,mess$swab)
+
+table(mess$eeg,mess$abeeg)   ### WHY PEOPLE WITH NO EEG MIGHT PRESENT AN ABNORMAL EEG?
+
+covariates<-mess[,c(12:14,32,34)]  ### INCLUDE ,37 when you understand the answer to the previous question 
 ```
