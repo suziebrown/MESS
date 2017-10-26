@@ -8,3 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+# Load the data
+```{r}
+mess <- read.csv("MESSdat.csv", header=TRUE)
+```
