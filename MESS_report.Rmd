@@ -76,6 +76,7 @@ covariates<-mess[,c(12:14,32,34)]  ### INCLUDE ,37 when you understand the answe
 # Exploratory - Kaplan-Meier curves
 
 We plot Kaplan-Meier curves of the first seizure after randomization, grouped by treatment and sex. The plot show that the survival probability for those who received a deferred treatment is lower than for those immediately treated, at least for the first 5 years after the randomization. For what concerns the sex of the patients, it seems not to have a significant effect on the survival probability.
+
 ```{r}
 library(survival)
 mess$surv1 <- with(mess, Surv(intseiz1, indseiz1 == 1))
