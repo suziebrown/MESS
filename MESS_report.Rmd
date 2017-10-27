@@ -230,7 +230,6 @@ par(mfrow=c(3,3))
 plot(modaalen)
 modaalen2<-aalen(surv1 ~ trt + const(ager) + const(sex) + nseiz + const(period) + const(abeeg), data = mess , n.sim=100)
 plot(modaalen2)
-
 ```
 
 
