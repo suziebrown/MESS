@@ -16,6 +16,8 @@ library(readr)
 mess <- read_delim("~/Documents/Module 2/MESS/MESSdat.csv", "\t", escape_double = FALSE, trim_ws = TRUE)
 summary(mess)
 head(mess)
+mess$trt<-as.factor(mess$trt)
+mess$sex<-as.factor(mess$sex)
 ```
 We see that there are many NAs in the columns relating to dates, but this is not shown on the summary because they are formatted as character. We first format the dates as dates.
 ```{r}
@@ -55,14 +57,14 @@ all.equal(which(is.na(mess$d1seiz)),which(is.na(mess$period)))
 ```
 Next we find that the binary results for various medical tests have been stored as 1/2 = yes/no, so we convert these to 0/1 = no/yes.
 ```{r}
-mess$eeg <- ifelse(mess$eeg==2,0,mess$eeg)
-mess$abeeg <- ifelse(mess$abeeg==2,0,mess$abeeg)
-mess$nsab <- ifelse(mess$nsab==2,0,mess$nsab)
-mess$gparsp <- ifelse(mess$gparsp==2,0,mess$gparsp)
-mess$gparnsp <- ifelse(mess$gparnsp==2,0,mess$gparnsp)
-mess$fparsp <- ifelse(mess$fparsp==2,0,mess$fparsp)
-mess$fparnsp <- ifelse(mess$fparnsp==2,0,mess$fparnsp)
-mess$swab <- ifelse(mess$swab==2,0,mess$swab)
+mess$eeg <- as.factor(ifelse(mess$eeg==2,0,mess$eeg))
+mess$abeeg <- as.factor(ifelse(mess$abeeg==2,0,mess$abeeg))
+mess$nsab <- as.factor(ifelse(mess$nsab==2,0,mess$nsab))
+mess$gparsp <- as.factor(ifelse(mess$gparsp==2,0,mess$gparsp))
+mess$gparnsp <- as.factor(ifelse(mess$gparnsp==2,0,mess$gparnsp))
+mess$fparsp <- as.factor(ifelse(mess$fparsp==2,0,mess$fparsp))
+mess$fparnsp <- as.factor(ifelse(mess$fparnsp==2,0,mess$fparnsp))
+mess$swab <- as.factor(ifelse(mess$swab==2,0,mess$swab))
 ```
 There is a mystery as to how some patients who have not had an EEG have recorded an abnormal EEG result.
 ```{r}
@@ -118,5 +120,21 @@ legend("topright", legend = c("Male","Female"), col = c("orange","brown"), lty=1
 #pct <- 1:98/100   # The 100th percentile of predicted survival is at +infinity
 #ptime <- predict(lfit, newdata=mess, type='quantile',p=pct, se=TRUE)
 #matplot(ptime$fit, 1-pct,xlab="Months", ylab="Survival", type='l', lty=c(1,2,2), col=1)
+```
+
+# Parametric survival models
+
+```{r}
+modpar1 <- survreg(surv1 ~ as.factor(trt) + ager + as.factor(sex) + nseiz + period, mess, dist="exponential")
+summary(modpar1)
+
+modpar2 <- survreg(surv1 ~ trt + ager + sex + nseiz + period, mess, dist="weibull")
+summary(modpar1)
+modpar3 <- survreg(surv1 ~ trt + ager + sex + nseiz + period, mess, dist="weibull",scale = -1)
+summary(modpar3)
+modpar1 <- survreg(surv1 ~ trt + ager + sex + nseiz + period, mess, dist="exponential")
+summary(modpar1)
+modpar1 <- survreg(surv1 ~ trt + ager + sex + nseiz + period, mess, dist="exponential")
+summary(modpar1)
 ```
 
