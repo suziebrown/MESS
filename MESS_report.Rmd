@@ -72,3 +72,23 @@ For now, these are the covariates we have decided to work with. We are dropping 
 ```{r}
 covariates<-mess[,c(12:14,32,34)]  ### INCLUDE ,37 when you understand the answer to the previous question 
 ```
+
+# Check balance of randomisation
+```{r}
+par(mfrow=c(1,2))
+
+t.sex <- table(mess$sex,mess$trt)
+colnames(t.sex)<-c('immediate','deferred')
+rownames(t.sex)<-c('male','female')
+plot(t.sex, main="randomisation by sex", ylab="treatment")
+mtext("sex",3)
+text(0.25,0.75,t.sex[1,1])
+text(0.75,0.75,t.sex[2,1])
+text(0.25,0.25,t.sex[1,2])
+text(0.75,0.25,t.sex[2,2])
+
+t.age <- table(cut(mess$ager,c(-1,5,9,19,29,39,49,59,69,100)), mess$trt)
+colnames(t.age)<-c('immediate','deferred')
+plot(t.age, main="randomisation by age", ylab="treatment")
+mtext("age",3)
+```
