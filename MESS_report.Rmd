@@ -8,12 +8,17 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-# Load the data
+
+# Data wrangling
 ```{r}
 ###http://www.sciencedirect.com/science/article/pii/S0140673605666949?via%3Dihub LANCET ARTICLE MARSON 2005
 library(readr)
 mess <- read_delim("~/Documents/Module 2/MESS/MESSdat.csv", "\t", escape_double = FALSE, trim_ws = TRUE)
-#mess[,substr(names(mess),1,2)=="d1"] <- as.Date(mess[,which(substr(names(mess),1,2)=="d1")])
+summary(mess)
+head(mess)
+```
+We see that there are many NAs in the columns relating to dates, but this is not shown on the summary because they are formatted as character. We first format the dates as dates.
+```{r}
 mess$d1sp<-as.Date(mess$d1sp,"%d/%m/%y")
 mess$d1cp<-as.Date(mess$d1cp,"%d/%m/%y")
 mess$d1ps<-as.Date(mess$d1ps,"%d/%m/%y")
@@ -24,15 +29,33 @@ mess$d1tc<-as.Date(mess$d1tc,"%d/%m/%y")
 mess$d1oth<-as.Date(mess$d1oth,"%d/%m/%y")
 mess$d1seiz<-as.Date(mess$d1seiz,"%d/%m/%y")
 mess$rand<-as.Date(mess$rand,"%d/%m/%y")
-summary(mess)
-summary(mess$int1yr[mess$ind1yr==1])  ###ind1yr==1 means that the subject was observed
-summary(mess$int1yr[mess$ind1yr==0])  ###ind1yr==0 indicates censoring
-hist(mess$ager,breaks=20)  # age at time of randomization is positively skewed - expected because they are people with recent diagnosis of epilepsy
-mess$trt # more or less equal allocation to treatment 
-table(mess$centre) # identification number for hospital?
-mess$centre <- as.factor(mess$centre) # do we group them? But it is arbitrary!
-all.equal(which(is.na(mess$d1seiz)),which(is.na(mess$period)))  #they are probably not MCAR because the event could have benn happened too long ago to remember it (or we do not have medical records for that)
-mess$eeg <- ifelse(mess$eeg==2,0,mess$eeg)   ### recoded NO as 0, YES as 1
+```
+Next we want to see which way round the censoring indicator is used. We see that where the censoring indicator `ind1yr` is 1, the time to one year remission `int1yr` has minimum 365, whereas where `ind1yr` is 0, the minimum is 1. From this we deduce that the indicator is 1 when the variable is observed and 0 if the variable is censored.
+```{r}
+summary(mess$int1yr[mess$ind1yr==1])
+summary(mess$int1yr[mess$ind1yr==0])
+```
+Plotting the age at randomisation `ager` we see that it is positively skewed. This is plausible since it is a study of people with single seizure or recent diagnosis of epilepsy, and it is more likely that an individual has their first seizure at a younger age.
+```{r}
+hist(mess$ager,breaks=20)
+```
+We see that the number of subjects having each treatment is roughly equal, as was the design of the study.
+```{r}
+mess$trt
+```
+We assume this variable must be an identifying number for the clinic where the subject entered the trial. As such, we format it as a factor.
+```{r}
+table(mess$centre)
+mess$centre <- as.factor(mess$centre)
+# maybe include in the model, by grouping them together? but it's a bit arbitrary - would be nice to know if the numbers are related to geographical location.
+```
+We verify that the same data are missing from `d1seiz` and `period`. These were probably subjects who couldn't remember the date of their first seizure, and/or whose medical records were missing. This suggests they are missing not at random - for instance if the subject can't remember the date it is likely to be a long time ago, i.e. higher values of `period`.
+```{r}
+all.equal(which(is.na(mess$d1seiz)),which(is.na(mess$period)))
+```
+Next we find that the binary results for various medical tests have been stored as 1/2 = yes/no, so we convert these to 0/1 = no/yes.
+```{r}
+mess$eeg <- ifelse(mess$eeg==2,0,mess$eeg)
 mess$abeeg <- ifelse(mess$abeeg==2,0,mess$abeeg)
 mess$nsab <- ifelse(mess$nsab==2,0,mess$nsab)
 mess$gparsp <- ifelse(mess$gparsp==2,0,mess$gparsp)
@@ -40,8 +63,12 @@ mess$gparnsp <- ifelse(mess$gparnsp==2,0,mess$gparnsp)
 mess$fparsp <- ifelse(mess$fparsp==2,0,mess$fparsp)
 mess$fparnsp <- ifelse(mess$fparnsp==2,0,mess$fparnsp)
 mess$swab <- ifelse(mess$swab==2,0,mess$swab)
-
-table(mess$eeg,mess$abeeg)   ### WHY PEOPLE WITH NO EEG MIGHT PRESENT AN ABNORMAL EEG?
-
+```
+There is a mystery as to how some patients who have not had an EEG have recorded an abnormal EEG result.
+```{r}
+table(mess$eeg,mess$abeeg)
+```
+For now, these are the covariates we have decided to work with. We are dropping all of the date variables because we suspect the absolute time does not matter, and we have relative times e.g. `period` saved in other variables. We have also dropped the sub-categories for different types of seizures, retaining just the number of tonic-clonic seizures and the overall number of seizures. We also drop the sub-categories of EEG abnormality, retaining just the overall indicator. We do not include the centre, because there are too many levels to find out anything useful since we don't know whether they are related geographically, for instance.
+```{r}
 covariates<-mess[,c(12:14,32,34)]  ### INCLUDE ,37 when you understand the answer to the previous question 
 ```
