@@ -125,16 +125,58 @@ legend("topright", legend = c("Male","Female"), col = c("orange","brown"), lty=1
 # Parametric survival models
 
 ```{r}
-modpar1 <- survreg(surv1 ~ as.factor(trt) + ager + as.factor(sex) + nseiz + period, mess, dist="exponential")
+modpar1 <- survreg(surv1 ~ trt + ager + sex + nseiz + period, mess, dist="exponential")
 summary(modpar1)
-
 modpar2 <- survreg(surv1 ~ trt + ager + sex + nseiz + period, mess, dist="weibull")
 summary(modpar1)
-modpar3 <- survreg(surv1 ~ trt + ager + sex + nseiz + period, mess, dist="weibull",scale = -1)
+modpar3 <- survreg(surv1 ~ trt + ager + sex + nseiz + period, mess, dist="lognormal")
 summary(modpar3)
-modpar1 <- survreg(surv1 ~ trt + ager + sex + nseiz + period, mess, dist="exponential")
-summary(modpar1)
-modpar1 <- survreg(surv1 ~ trt + ager + sex + nseiz + period, mess, dist="exponential")
-summary(modpar1)
+modpar4 <- survreg(surv1 ~ trt + ager + sex + nseiz + period, mess, dist="loglogistic")
+summary(modpar4)
+
+# library(flexsurv)
+# modpar1 <- flexsurvreg(surv1 ~ trt + ager + sex + nseiz + period, data = mess, dist="weibull")
+# summary(modpar1)
+# modpar2 <- flexsurvreg(surv1 ~ trt + ager + sex + nseiz + period, data = mess, dist="lnorm")
+# summary(modpar2)
+# modpar3 <- flexsurvreg(surv1 ~ trt + ager + sex + nseiz + period, data = mess, dist="llogis")
+# summary(modpar3)
+# modpar5 <- flexsurvreg(surv1 ~ trt + ager + sex + nseiz + period, data = mess, dist="gengamma")
+# summary(modpar5)
+
+parmodels<-matrix(NA,nrow=4,ncol=4)
+#parmodels[1,] <- c(modpar1$N, modpar1$loglik, modpar1$AIC)
+parmodels[1,] <- c(summary(modpar1)$n, modpar1$loglik[1],summary(modpar1)$df, AIC(modpar1))
+parmodels[2,] <- c(summary(modpar2)$n, modpar2$loglik[1],summary(modpar2)$df, AIC(modpar2))
+parmodels[3,] <- c(summary(modpar3)$n, modpar3$loglik[1],summary(modpar3)$df, AIC(modpar3))
+parmodels[4,] <- c(summary(modpar4)$n, modpar4$loglik[1],summary(modpar4)$df, AIC(modpar4))
+colnames(parmodels) <- c("N.obs","Loglik","df","AIC")
+rownames(parmodels) <- c("exponential","weibull","lognormal","loglogistic")
+parmodels
+#anova(modpar1,modpar2,modpar3,modpar4)
+
+pct <- 1:98/100   # The 100th percentile of predicted survival is at +infinity
+ptime <- predict(modpar2, newdata=data.frame(trt=0,ager=24,sex=0,nseiz=1,period= 438.4), type='quantile',
+                 p=pct, se=TRUE)
+matplot(cbind(ptime$fit, ptime$fit + 2*ptime$se.fit, ptime$fit - 2*ptime$se.fit)/30.5, 1-pct,
+        xlab="Months", ylab="Survival", type='l', lty=c(1,2,2), col=1)
+
+
+
+
+
+dfNew <- data.frame(sex=c(0,0), trt=c(0,1),ager=24,nseiz=1,period = 438.4)
+percs <- (1:99)/100
+FWeib <- predict(modpar2, newdata=dfNew, type="quantile", p=percs, se=TRUE)
+matplot(cbind(FWeib$fit[1, ],
+              FWeib$fit[1, ] - 2*FWeib$se.fit[1, ],
+              FWeib$fit[1, ] + 2*FWeib$se.fit[1, ]), 1-percs,
+        type="l", main=expression(paste("Weibull-Fit ", hat(S)(t), " with SE")),
+        xlab="t", ylab="Survival", lty=c(1, 2, 2), lwd=2, col="blue")
+matlines(cbind(FWeib$fit[2, ],
+               FWeib$fit[2, ] - 2*FWeib$se.fit[2, ],
+               FWeib$fit[2, ] + 2*FWeib$se.fit[2, ])/30.5, 1-percs, col="red", lwd=2)
+legend(x="topright", lwd=2, lty=c(1, 2, 1, 2), col=c("blue", "blue", "red", "red"),
+       legend=c("sex=m, X=0, IV=A", "+- 2*SE", "sex=m, X=0, IV=C", "+- 2*SE"))
 ```
 
