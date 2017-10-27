@@ -232,5 +232,3 @@ modaalen2<-aalen(surv1 ~ trt + const(ager) + const(sex) + nseiz + const(period) 
 plot(modaalen2)
 ```
 
-
-
