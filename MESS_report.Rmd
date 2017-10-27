@@ -72,3 +72,28 @@ For now, these are the covariates we have decided to work with. We are dropping 
 ```{r}
 covariates<-mess[,c(12:14,32,34)]  ### INCLUDE ,37 when you understand the answer to the previous question 
 ```
+
+# Exploratory - Kaplan-Meier curves
+
+We plot Kaplan-Meier curves of the first seizure after randomization, grouped by treatment and sex. The plot show that the survival probability for those who received a deferred treatment is lower than for those immediately treated, at least for the first 5 years after the randomization. For what concerns the sex of the patients, it seems not to have a significant effect on the survival probability.
+```{r}
+library(survival)
+mess$surv1 <- with(mess, Surv(intseiz1, indseiz1 == 1))
+mfit <- survfit(surv1 ~ 1, conf.type = "log-log", data = mess)
+#options(survfit.print.mean =T)
+#plot(mfit, mark.time=T, xlab = "Days since randomization",ylab = "Survival")
+#summary(mfit,censored=T)
+par(mfrow=c(1,2))
+mfit.trt <- survfit(surv1 ~ trt, conf.type = "log-log", data = mess)
+plot(mfit.trt, conf.int = T, mark.time=F, col = 2:3, xlab = "Days since randomization", ylab = "Survival")
+legend("topright", legend = c("Immediate","Deferred"), col = 2:3, lty=1)
+mfit.sex <- survfit(surv1 ~ sex, conf.type = "log-log", data = mess)
+plot(mfit.sex, conf.int = T, mark.time=F, col = c("orange","brown"), xlab = "Days since randomization",ylab = "Survival")
+legend("topright", legend = c("Male","Female"), col = c("orange","brown"), lty=1)
+
+#lfit <- survreg(surv1 ~ trt, data=mess)
+#pct <- 1:98/100   # The 100th percentile of predicted survival is at +infinity
+#ptime <- predict(lfit, newdata=mess, type='quantile',p=pct, se=TRUE)
+#matplot(ptime$fit, 1-pct,xlab="Months", ylab="Survival", type='l', lty=c(1,2,2), col=1)
+```
+
