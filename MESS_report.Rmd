@@ -202,7 +202,7 @@ matplot(cbind(ptime$fit, ptime$fit + 2*ptime$se.fit, ptime$fit - 2*ptime$se.fit)
 
 
 
-dfNew <- data.frame(sex=factor(c(0,0)), trt=factor(c(0,1)),ager=24,nseiz=1,period = 438.4, abeeg = 1)
+dfNew <- data.frame(sex=factor(c(0,0)), trt=factor(c(0,1)),ager=84,nseiz=1,period = 438.4, abeeg = 1)
 percs <- (1:99)/100
 FLogN <- predict(modpar3, newdata=dfNew, type="quantile", p=percs, se=TRUE)
 matplot(cbind(FLogN$fit[1, ],
@@ -218,3 +218,20 @@ legend(x="topright", lwd=2, lty=c(1, 2, 1, 2), col=c("blue", "blue", "red", "red
 ```
 
 Among the accelerated failure time (AFT) models, lognormal model is slightly preferred.
+
+
+# Aalen's additive model
+
+```{r}
+library(timereg)
+modaalen<-aalen(surv1 ~ trt + const(ager) + const(sex) + const(nseiz) + const(period) + const(abeeg), data = mess , n.sim=100)
+summary(modaalen)
+par(mfrow=c(3,3))
+plot(modaalen)
+modaalen2<-aalen(surv1 ~ trt + const(ager) + const(sex) + nseiz + const(period) + const(abeeg), data = mess , n.sim=100)
+plot(modaalen2)
+
+```
+
+
+
