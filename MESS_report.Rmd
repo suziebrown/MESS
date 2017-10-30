@@ -294,3 +294,8 @@ rownames(parmodels.tr) <- c("exponential","weibull","lognormal","loglogistic")
 parmodels.tr #the difference to be interpreted in terms of chisq(1) = 3.84 
 ```
 
+# Survival Lasso
+```{r}
+covars <- transmute(mess, ager, sex, trt, centre, nsp, ncp, nps, nmyo, nab, naab, ntc, noth, nseiz.tr, period.tr, eeg, abeeg, nsab, gparsp, gparnsp, fparsp, fparnsp, swab)
+
+```
