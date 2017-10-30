@@ -11,9 +11,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Data wrangling
 ```{r}
-###http://www.sciencedirect.com/science/article/pii/S0140673605666949?via%3Dihub LANCET ARTICLE MARSON 2005
-library(readr)
-mess <- read_delim("~/Documents/Module 2/MESS/MESSdat.csv", "\t", escape_double = FALSE, trim_ws = TRUE)
+### http://www.sciencedirect.com/science/article/pii/S0140673605666949?via%3Dihub LANCET ARTICLE MARSON 2005
+
+mess <- read.csv("MESSdat.csv", sep="\t", header=T)
 summary(mess)
 head(mess)
 mess$trt<-as.factor(mess$trt)
@@ -43,7 +43,7 @@ hist(mess$ager,breaks=20)
 ```
 We see that the number of subjects having each treatment is roughly equal, as was the design of the study.
 ```{r}
-mess$trt
+table(mess$trt)
 ```
 We assume this variable must be an identifying number for the clinic where the subject entered the trial. As such, we format it as a factor.
 ```{r}
@@ -132,12 +132,30 @@ legend("topright", legend = c("Male","Female"), col = c("orange","brown"), lty=1
 ```{r}
 par(mfrow=c(3,2))
 plot(survfit(Surv(mess$intseiz1,mess$indseiz1, type="right") ~ mess$trt), main="treatment")
-plot(survfit(Surv(mess$intseiz1,mess$indseiz1, type="right") ~ cut(mess$age, c(-1, 20,40,60,80,100))), main="age", conf.int=T, col=rep(1:10, each=3))
+plot(survfit(Surv(mess$intseiz1,mess$indseiz1, type="right") ~ cut(mess$ager, c(-1, 20,40,60,80,100))), main="age", conf.int=T, col=rep(1:10, each=3))
 plot(survfit(Surv(mess$intseiz1,mess$indseiz1, type="right") ~ mess$sex), main="sex")
 plot(survfit(Surv(mess$intseiz1,mess$indseiz1, type="right") ~ mess$eeg), main="EEG")
 plot(survfit(Surv(mess$intseiz1,mess$indseiz1, type="right") ~ mess$abeeg), main="abnormal EEG")
 ```
 We see that sex makes no difference, nor does having/not having an EEG. But as we might expect, the treatment has an effect on outcome, as does an abnormal EEG result. It is hard to see whether age makes a difference but perhaps it does.
+
+# Think about transforming some variables
+We plotted histograms of each (non-binary) variable we were considering including. The variables `nseiz` and `period` are highly positively-skewed. This is not surprising since it is a study on early epilepsy, so most subjects have only had one seizure and the frist seizure was not long before entering the study.
+```{r}
+par(mfrow=c(2,2))
+hist(mess$intseiz1, breaks=20)
+hist(mess$ager, breaks=20)
+hist(mess$nseiz, breaks=20) #this one should be transformed
+hist(mess$period, breaks=20) #and this one
+```
+We will try transforming `period` and `nseiz`.
+```{r}
+par(mfrow=c(1,2))
+mess$period.tr <- log(mess$period + 1)
+mess$nseiz.tr <- log(mess$nseiz)
+hist(mess$period.tr)
+hist(mess$nseiz.tr)
+```
 
 # Cox proportional hazards model
 
@@ -152,7 +170,7 @@ cox.zph(mycox)
 par(mfrow=c(3,2))
 plot(cox.zph(mycox))
 ```
-We will therefore try adding into the model an interaction term of treatment with time. We see, as expected, that the interaction term is very significant. However we also see that the proportional hazards model is still rejected, so even with the interaction term the Cox proportonal hazards model is not suitable.
+We will therefore try adding into the model an interaction term of treatment with time. We see, as expected, that the interaction term is very significant. However we also see that the proportional hazards model is still rejected, so even with the interaction term the Cox proportional hazards model is not suitable.
 ```{r}
 mycox2 <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz + period + trt:intseiz1, data=mess)
 summary(mycox2)
