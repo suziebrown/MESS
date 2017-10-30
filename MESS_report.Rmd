@@ -152,7 +152,7 @@ We will try transforming `period` and `nseiz`.
 ```{r}
 par(mfrow=c(1,2))
 mess$period.tr <- log(mess$period + 1)
-mess$nseiz.tr <- log(mess$nseiz)
+mess$nseiz.tr <- mess$nseiz > 1
 hist(mess$period.tr)
 hist(mess$nseiz.tr)
 ```
@@ -211,16 +211,14 @@ parmodels
 #anova(modpar1,modpar2,modpar3,modpar4)
 
 pct <- 1:98/100   # The 100th percentile of predicted survival is at +infinity
-ptime <- predict(modpar2, newdata=data.frame(trt=0,ager=24,sex=0,nseiz=1,period= 438.4), type='quantile',
-                 p=pct, se=TRUE)
-matplot(cbind(ptime$fit, ptime$fit + 2*ptime$se.fit, ptime$fit - 2*ptime$se.fit)/30.5, 1-pct,
-        xlab="Months", ylab="Survival", type='l', lty=c(1,2,2), col=1)
+ptime <- predict(modpar2, newdata=data.frame(trt=0,ager=24,sex=0,nseiz=1,period= 438.4), type='quantile',p=pct, se=TRUE)
+matplot(cbind(ptime$fit, ptime$fit + 2*ptime$se.fit, ptime$fit - 2*ptime$se.fit)/30.5, 1-pct,xlab="Months", ylab="Survival", type='l', lty=c(1,2,2), col=1)
 
 
 
 
 
-dfNew <- data.frame(sex=factor(c(0,0)), trt=factor(c(0,1)),ager=84,nseiz=1,period = 438.4, abeeg = 1)
+dfNew <- data.frame(sex=factor(c(0,0)), trt=factor(c(0,1)),ager=24,nseiz=1,period = 438.4, abeeg = factor(c(1,1)))
 percs <- (1:99)/100
 FLogN <- predict(modpar3, newdata=dfNew, type="quantile", p=percs, se=TRUE)
 matplot(cbind(FLogN$fit[1, ],
@@ -228,9 +226,9 @@ matplot(cbind(FLogN$fit[1, ],
               FLogN$fit[1, ] + 2*FLogN$se.fit[1, ]), 1-percs,
         type="l", main=expression(paste("LogNormal-Fit ", hat(S)(t), " with SE")),xlim = c(0,3000),
         xlab="t", ylab="Survival", lty=c(1, 2, 2), lwd=2, col="blue")
-matlines(cbind(FWeib$fit[2, ],
-               FWeib$fit[2, ] - 2*FWeib$se.fit[2, ],
-               FWeib$fit[2, ] + 2*FWeib$se.fit[2, ])/30.5, 1-percs, col="red", lwd=2)
+matlines(cbind(FLogN$fit[2, ],
+               FLogN$fit[2, ] - 2*FLogN$se.fit[2, ],
+               FLogN$fit[2, ] + 2*FLogN$se.fit[2, ])/30.5, 1-percs, col="red", lwd=2)
 legend(x="topright", lwd=2, lty=c(1, 2, 1, 2), col=c("blue", "blue", "red", "red"),
        legend=c("Trt 0 (immediate)", "+- 2*SE", "Trt 0 (deferred)", "+- 2*SE"))
 ```
