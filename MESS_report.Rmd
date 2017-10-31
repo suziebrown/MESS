@@ -3,6 +3,7 @@ title: "Modelling the MESS Data"
 author: "Suzie Brown and Marco Palma"
 date: "26 October 2017"
 output: pdf_document
+bibliography: MESSbib.bib
 ---
 
 ```{r setup, include=FALSE}
@@ -17,6 +18,18 @@ Because many people have only one seizure in their life, we don't necessarily wa
 We are therefore interested in the level of benefit associated with immediate treatment relative to deferred treatment. Ultimately we could weigh this up against the costs of ongoing medication in order to decide whether a new patient should be given immediate treatment or not. This decision could depend on other data about the patient; for instance the trial recorded demographic details, results of some medical tests, and information about previous seizures.
 
 Our aim is to construct a model considering some of these factors, which can be used to predict the outcome for a specific type of patient under immediate and deferred treatment. The model could then be used with some loss function to make optimal decisions about how to treat new patients.
+
+# Methods
+
+## Aalen's additive model
+
+The proportional hazards assumption underlying Cox model might be in many cases too strict and lead to unrealistic conclusions. Moreover, it is not ... to consider that the effect of one or more covariates might change over time. In these cases the model proposed by @aalen1989linear provides a flexible way to tackle these issues. Unlike Cox model, in Aalen's model the effect of the covariate on the hazard function at time t is additive. In other words, the hazard function at time t is a linear function of the covariates. Each coefficient is a function allowed to vary over time; in this sense, the model is fully nonparametric. At time t, the value of the coefficient function is to be read as the variation with respect to the baseline hazard function induced by a change of one unit (level in case of categorical variables) in the covariates. 
+Aalen's additive model is widely used because of the easiness in the interpretation of the graphical results, that report the cumulative regression coefficient over time with 95% confidence bands. When the effect of the covariate is constant over time (like in Cox model), the cumulative regression coefficient will look like a straight line; on the contrary, if the effect becomes null only after a certain time point, the slope of the cumulative regression coefficient will decrease towards zero. When the covariate does not play a role in explaining the variability in the hazard function, the value 0 will be included in the confidence bands for all the time interval.
+
+## Parametric survival models
+
+
+
 
 
 # Data wrangling
@@ -128,6 +141,7 @@ For the purposes of the initial exploratory model fitting, we use a small subset
 
 We drop all of the date variables because we suspect the absolute time does not matter; relative times are available for many of the events. We also drop the sub-categories for different types of seizures, retaining just the number of tonic-clonic seizures (the most severe type) and the overall number of seizures. We also drop the sub-categories of EEG abnormality, retaining just the overall indicator. We do not include the centre, since there are so many levels it adds too many degrees of freedom, and we have no information about how they might be grouped e.g. geographically.
 ```{r}
+library(dplyr)
 covars1 <- transmute(mess, ager, sex, trt, ntc, nseiz.tr, period.tr, eeg, abeeg)
 ```
 
@@ -272,24 +286,7 @@ summary(modpar3)
 # pct <- 1:98/100   # The 100th percentile of predicted survival is at +infinity
 # ptime <- predict(modpar2, newdata=data.frame(trt=0,ager=24,sex=0,nseiz=1,period= 438.4), type='quantile',p=pct, se=TRUE)
 # matplot(cbind(ptime$fit, ptime$fit + 2*ptime$se.fit, ptime$fit - 2*ptime$se.fit)/30.5, 1-pct,xlab="Months", ylab="Survival", type='l', lty=c(1,2,2), col=1)
-
-
-###DFNEW NOT WORKING!
-dfNew <- data.frame(sex=factor(c(0,0)), trt=factor(c(0,1)),ager=84,nseiz.tr=factor(c(1,1)),period.tr = 3.4, abeeg = factor(c(1,1)))
-percs <- (1:99)/100
-FLogN <- predict(modpar3.tr, newdata=dfNew, type="quantile", p=percs, se=TRUE)
-matplot(cbind(FLogN$fit[1, ],
-              FLogN$fit[1, ] - 2*FLogN$se.fit[1, ],
-              FLogN$fit[1, ] + 2*FLogN$se.fit[1, ])/365.25, 1-percs,
-        type="l", main=expression(paste("LogNormal-Fit ", hat(S)(t), " with SE")),xlim = c(0,10),
-        xlab="Time (in years)", ylab="Survival", lty=c(1, 2, 2), lwd=2, col="blue")
-matlines(cbind(FLogN$fit[2, ],
-               FLogN$fit[2, ] - 2*FLogN$se.fit[2, ],
-               FLogN$fit[2, ] + 2*FLogN$se.fit[2, ])/365.25, 1-percs, col="red", lwd=2)
-legend(x="topright", lwd=2, lty=c(1, 2, 1, 2), col=c("blue", "blue", "red", "red"),
-       legend=c("Trt 1 (immediate)", "+- 2*SE", "Trt 0 (deferred)", "+- 2*SE"))
 ```
-
 Now let us consider the transformed variables.
 
 ```{r}
@@ -310,10 +307,29 @@ parmodels.tr #the difference to be interpreted in terms of chisq(1) = 3.84
 modpar.logn <- survreg(surv1 ~ . + trt:nseiz.tr - centre , covars, dist="lognormal")
 ```
 
-# Survival Lasso
 ```{r}
 library(dplyr)
 covars <- transmute(mess, ager, sex, trt, nsp, ncp, nps, nmyo, nab, naab, ntc, noth, nseiz.tr, period.tr, eeg, abeeg, nsab, gparsp, gparnsp, fparsp, fparnsp, swab)
+###DFNEW NOT WORKING!
+dfNew <- data.frame(sex=factor(c(0,0)), trt=factor(c(0,1)),ager=84,nseiz.tr=factor(c(1,1)),period.tr = 3.4, abeeg = factor(c(1,1)))
+percs <- (1:99)/100
+FLogN <- predict(modpar3.tr, newdata=dfNew, type="quantile", p=percs, se=TRUE)
+matplot(cbind(FLogN$fit[1, ],
+              FLogN$fit[1, ] - 2*FLogN$se.fit[1, ],
+              FLogN$fit[1, ] + 2*FLogN$se.fit[1, ])/365.25, 1-percs,
+        type="l", main=expression(paste("LogNormal-Fit ", hat(S)(t), " with SE")),xlim = c(0,10),
+        xlab="Time (in years)", ylab="Survival", lty=c(1, 2, 2), lwd=2, col="blue")
+matlines(cbind(FLogN$fit[2, ],
+               FLogN$fit[2, ] - 2*FLogN$se.fit[2, ],
+               FLogN$fit[2, ] + 2*FLogN$se.fit[2, ])/365.25, 1-percs, col="red", lwd=2)
+legend(x="topright", lwd=2, lty=c(1, 2, 1, 2), col=c("blue", "blue", "red", "red"),
+       legend=c("Trt 1 (immediate)", "+- 2*SE", "Trt 0 (deferred)", "+- 2*SE"))
+```
+
+
+# Survival Lasso
+```{r}
+
 # 
 # XX <- model.matrix(Surv(mess$intseiz1, mess$indseiz1, type="right") ~ ager + sex + trt + nsp + ncp + nps + nmyo + nab + naab + ntc + noth + nseiz.tr + period.tr + eeg + abeeg + nsab + gparsp + gparnsp + fparsp + fparnsp + swab, data=mess)
 # 
@@ -340,13 +356,5 @@ print(rsf.surv1)
 plot(rsf.surv1)
 gg_dta <- gg_vimp(rsf.surv1)
 plot(gg_dta)
-
-
-
-
-
-
-
-
 ```
 
