@@ -1,5 +1,5 @@
 ---
-title: "MESS"
+title: "Modelling the MESS Data"
 author: "Suzie Brown and Marco Palma"
 date: "26 October 2017"
 output: pdf_document
@@ -8,6 +8,16 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+# Introduction
+Th MESS data is from a randomised controlled trial about treatment for epilepsy. The subjects in the study are patients who have had only one seizure or hve not had epilepsy for long. There are two treatments; either immediate or deferred. Patients assigned the deferred treatment are not prescribed anti-epileptic drugs after their first seizure, but the decision is revisited if they have further seizures.
+
+Because many people have only one seizure in their life, we don't necessarily want to put patients on anti-epileptic drugs after just one seizure. However, we also don't want patients going on to have further seizures that could have been prevented or reduced by starting treatment immediately.
+
+We are therefore interested in the level of benefit associated with immediate treatment relative to deferred treatment. Ultimately we could weigh this up against the costs of ongoing medication in order to decide whether a new patient should be given immediate treatment or not. This decision could depend on other data about the patient; for instance the trial recorded demographic details, results of some medical tests, and information about previous seizures.
+
+Our aim is to construct a model considering some of these factors, which can be used to predict the outcome for a specific type of patient under immediate and deferred treatment. The model could then be used with some loss function to make optimal decisions about how to treat new patients.
+
 
 # Data wrangling
 ```{r}
@@ -57,13 +67,14 @@ mess$centre <- as.factor(mess$centre)
 # maybe include in the model, by grouping them together? but it's a bit arbitrary - would be nice to know if the numbers are related to geographical location.
 ```
 
-We verify that the same data are missing from `d1seiz` and `period`. These were probably subjects who couldn't remember the date of their first seizure, and/or whose medical records were missing. This suggests they are missing not at random - for instance if the subject can't remember the date it is likely to be a long time ago, i.e. higher values of `period`.
+We verify that the same data are missing from `d1seiz` and `period`. These were probably subjects who couldn't remember the date of their first seizure, and/or whose medical records were missing. This suggests they are missing not at random - for instance if the subject can't remember the date it is likely to be a long time ago, i.e. higher values of `period`. However, since they are only 5 out of 1425 observations, we suspect it will not make much difference to treat them as if missing at random.
 ```{r}
 all.equal(which(is.na(mess$d1seiz)),which(is.na(mess$period)))
 ```
 
 Next we find that the binary results for various medical tests have been stored as 1/2 = yes/no, so we convert these to 0/1 = no/yes.
 ```{r}
+# as.logical ?
 mess$eeg <- as.factor(ifelse(mess$eeg==2,0,mess$eeg))
 mess$abeeg <- as.factor(ifelse(mess$abeeg==2,0,mess$abeeg))
 mess$nsab <- as.factor(ifelse(mess$nsab==2,0,mess$nsab))
@@ -74,7 +85,9 @@ mess$fparnsp <- as.factor(ifelse(mess$fparnsp==2,0,mess$fparnsp))
 mess$swab <- as.factor(ifelse(mess$swab==2,0,mess$swab))
 ```
 
-There is a mystery as to how some patients who have not had an EEG have recorded an abnormal EEG result. There are several possible explanations, but we will assume the patients with an abnormal EEG have had an EEG. We adjust the `eeg` varaible accordingly. Since there are only five subjects in this category it shoudln't substantially affect any results.
+## Strange EEG results
+
+There is a mystery as to how some patients who have not had an EEG have recorded an abnormal EEG result. There are several possible explanations (different types of recording error), but we will assume the patients with an abnormal EEG have had an EEG. We adjust the `eeg` varaible accordingly. Since there are only five subjects in this category it shoudln't substantially affect any results.
 ```{r}
 t.eeg <- table(mess$eeg,mess$abeeg)
 dimnames(t.eeg) <- list(EEG=c(0,1), abEEG=c(0,1))
@@ -83,18 +96,45 @@ t.eeg
 mess$eeg[mess$eeg==0 & mess$abeeg==1] <- 1
 ```
 
-Split age into bins.
+## Split age into bins
+
+We use the age categories referred to in Marson et al 2005.
 ```{r}
 mess$agecat <- cut(mess$ager,c(-1,5,9,19,29,39,49,59,69,100))
 ```
 
-For now, these are the covariates we have decided to work with. We are dropping all of the date variables because we suspect the absolute time does not matter, and we have relative times e.g. `period` saved in other variables. We have also dropped the sub-categories for different types of seizures, retaining just the number of tonic-clonic seizures and the overall number of seizures. We also drop the sub-categories of EEG abnormality, retaining just the overall indicator. We do not include the centre, because there are too many levels to find out anything useful since we don't know whether they are related geographically, for instance.
+## Transform some variables
+
+We plotted histograms of each (non-binary) variable we were considering including. The variables `nseiz` and `period` are highly positively-skewed. This is not surprising since it is a study on early epilepsy, so most subjects have only had one seizure and the frist seizure was not long before entering the study.
 ```{r}
-#covariates<-mess[,c(12:14,32,34)]  ### INCLUDE ,37 when you understand the answer to the previous question 
+par(mfrow=c(2,2))
+hist(mess$intseiz1, breaks=20)
+hist(mess$ager, breaks=20)
+hist(mess$nseiz, breaks=20) #this one should be transformed
+hist(mess$period, breaks=20) #and this one
+```
+We will try transforming `period` and `nseiz`. For `nseiz`, we simply use the indicator of whether it is 1 or more than 1, since over half of the patients have `nseiz==1`. We take the logarithm of `period` to reduce the skew.
+```{r}
+#par(mfrow=c(1,2))
+mess$period.tr <- log(mess$period + 1)
+mess$nseiz.tr <- mess$nseiz > 1
+hist(mess$period.tr, breaks = 20)
+#hist(mess$nseiz.tr)
+```
+
+## Select initial set of covariates
+
+For the purposes of the initial exploratory model fitting, we use a small subset of the covariates. We address the issue of variable selection later on.
+
+We drop all of the date variables because we suspect the absolute time does not matter; relative times are available for many of the events. We also drop the sub-categories for different types of seizures, retaining just the number of tonic-clonic seizures (the most severe type) and the overall number of seizures. We also drop the sub-categories of EEG abnormality, retaining just the overall indicator. We do not include the centre, since there are so many levels it adds too many degrees of freedom, and we have no information about how they might be grouped e.g. geographically.
+```{r}
+covars1 <- transmute(mess, ager, sex, trt, ntc, nseiz.tr, period.tr, eeg, abeeg)
 ```
 
 
 # Check balance of randomisation
+
+We check that the randomisation is balanced over sex and age. There is a noticeable deviation from an even split in some categories, but nothing too major.
 ```{r}
 par(mfrow=c(1,2))
 
@@ -115,10 +155,9 @@ mtext("age",3)
 ```
 
 
-# Exploratory - Kaplan-Meier curves
+# Exploratory Kaplan-Meier curves
 
-We plot Kaplan-Meier curves of the first seizure after randomization, grouped by treatment and sex. The plot show that the survival probability for those who received a deferred treatment is lower than for those immediately treated, at least for the first 5 years after the randomization. For what concerns the sex of the patients, it seems not to have a significant effect on the survival probability.
-
+We plot Kaplan-Meier curves of the first seizure after randomization, grouped by treatment and sex. The first plot shows that the survival probability for those who received a deferred treatment is lower than for those immediately treated, at least for the first 5 years after the randomization. From the second plot it seems that sex does not have a significant effect on the survival probability.
 ```{r}
 library(survival)
 surv1 <- with(mess, Surv(intseiz1, indseiz1 == 1))
@@ -140,36 +179,8 @@ legend("topright", legend = c("Male","Female"), col = c("orange","brown"), lty=1
 #matplot(ptime$fit, 1-pct,xlab="Months", ylab="Survival", type='l', lty=c(1,2,2), col=1)
 ```
 
-# Impute missing values ??
 
-# I'm just exploring which covariates we might like to include...
-```{r}
-# par(mfrow=c(3,2))
-# plot(survfit(Surv(mess$intseiz1,mess$indseiz1, type="right") ~ mess$trt), main="treatment")
-# plot(survfit(Surv(mess$intseiz1,mess$indseiz1, type="right") ~ cut(mess$ager, c(-1, 20,40,60,80,100))), main="age", conf.int=T, col=rep(1:10, each=3))
-# plot(survfit(Surv(mess$intseiz1,mess$indseiz1, type="right") ~ mess$sex), main="sex")
-# plot(survfit(Surv(mess$intseiz1,mess$indseiz1, type="right") ~ mess$eeg), main="EEG")
-# plot(survfit(Surv(mess$intseiz1,mess$indseiz1, type="right") ~ mess$abeeg), main="abnormal EEG")
-```
-We see that sex makes no difference, nor does having/not having an EEG. But as we might expect, the treatment has an effect on outcome, as does an abnormal EEG result. It is hard to see whether age makes a difference but perhaps it does.
 
-# Transformations of some variables
-We plotted histograms of each (non-binary) variable we were considering including. The variables `nseiz` and `period` are highly positively-skewed. This is not surprising since it is a study on early epilepsy, so most subjects have only had one seizure and the frist seizure was not long before entering the study.
-```{r}
-par(mfrow=c(2,2))
-hist(mess$intseiz1, breaks=20)
-hist(mess$ager, breaks=20)
-hist(mess$nseiz, breaks=20) #this one should be transformed
-hist(mess$period, breaks=20) #and this one
-```
-We will try transforming `period` and `nseiz`.
-```{r}
-#par(mfrow=c(1,2))
-mess$period.tr <- log(mess$period + 1)
-mess$nseiz.tr <- mess$nseiz > 1
-hist(mess$period.tr, breaks = 20)
-#hist(mess$nseiz.tr)
-```
 
 # Cox proportional hazards model
 
