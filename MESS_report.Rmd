@@ -195,7 +195,10 @@ legend("topright", legend = c("Male","Female"), col = c("orange","brown"), lty=1
 #matplot(ptime$fit, 1-pct,xlab="Months", ylab="Survival", type='l', lty=c(1,2,2), col=1)
 ```
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 2af6785f470e6a805ceb00d3fb756829de244954
 # Cox proportional hazards model
 
 The Cox model relies on the strong assumption of *proportional hazards*, that is that a unit increase in a certain covariate has a multiplicative effect on the hazard rate. In particular, the hazard function $\lambda$ has the form
@@ -243,7 +246,11 @@ modaalen<-aalen(surv1 ~ trt + const(ager) + const(sex) + const(nseiz) + const(pe
 summary(modaalen)
 #par(mfrow=c(3,3))
 plot(modaalen)
-#modaalen2<-aalen(surv1 ~ trt + const(ager) + const(sex) + nseiz + const(period) + const(abeeg), data = mess , n.sim=100)
+modaalen2<-aalen(surv1 ~ trt + const(ager) + sex + nseiz.tr + period.tr + abeeg , data = mess , n.sim=100)
+#modaalen3<-aalen(surv1 ~ . - ager + const(ager), data = covars , n.sim=100)
+x11()
+plot(modaalen2)
+dev.off()
 #plot(modaalen2)
 ```
 
