@@ -29,31 +29,13 @@ We are therefore interested in the level of benefit associated with immediate tr
 
 Our aim is to construct a model considering some of these factors, which can be used to predict the outcome for a specific type of patient under immediate and deferred treatment. The model could then be used with some loss function to make optimal decisions about how to treat new patients.
 
-# Methods
-
-# Aalen's additive model
-
-The proportional hazards assumption underlying Cox model might be in many cases too strict and lead to unrealistic conclusions. Moreover, it is not uncommon to consider that the effect of one or more covariates might change over time. In these cases the model proposed by @aalen1989linear provides a flexible way to tackle these issues. Unlike Cox model, in Aalen's model the effect of the covariate on the hazard function at time t is additive. In other words, the hazard function at time t is a linear function of the covariates. Each coefficient is a function allowed to vary over time; in this sense, the model is fully nonparametric. At time t, the value of the coefficient function is to be read as the variation with respect to the baseline hazard function induced by a change of one unit (level in case of categorical variables) in the covariates. 
-
-Aalen's additive model is widely used because of the easiness in the interpretation of the graphical results, that report the cumulative regression coefficient over time with 95% confidence bands. When the effect of the covariate is constant over time (like in Cox model), the cumulative regression coefficient will look like a straight line; on the contrary, if the effect becomes null only after a certain time point, the slope of the cumulative regression coefficient will decrease towards zero. When the covariate does not play a role in explaining the variability in the hazard function, the value 0 will be included in the confidence bands for all the time interval.
-
-# Parametric survival models
-
-An alternative to the Cox model is to consider a parametric specification for the distribution of survival times. In particular, the class of accelerated failure time (AFT) models provides the natural extension in case the proportional hazard assumption does not work. Following the introduction provided by @hosmer2008applied, it is possible to write the distribution of the time to event for the $i$-th subject as 
-$$\log(t_i)=\mu+\beta^T x_i+\sigma \epsilon_i $$
-
-where $\sigma$ is a scale parameter and $\epsilon_i$ is an error term with a prespecified distribution (the choice for this distribution determines the type of model). Common choices for the regression models are exponential, Weibull, lognormal (when the distribution of $\epsilon$ and therefore the distribution of $ln(t)$ is normal) and loglogistic: this choice will affect the shape of the hazard function, that may be monotonic or having a maximum dependent on the scale parameter. The effects in this model are multiplicative on the time scale: in other words, the time to the event depends on the exponential of the linear combination of the covariates weighted by the coefficients. The name “accelerated failure time” arises from the fact that given 
-$$ t_i=\exp{[\beta^Tx_i]}\exp{[\sigma\epsilon_i]} $$
-the effect of the covariates is to “accelerate” or decelerate the time to the event of interest with respect to a subject with baseline characteristics (i.e., the one for which all the covariates assume value zero). This means that if for a given variable the coefficient is positive, the time to the event will increase, hence the effect of the covariate will be protective. Therefore, the sign of the coefficient has to be read in opposite way with respect to the proportional hazards models.
-
-
-# Data wrangling
+# Exploratory analysis 
 
 ```{r}
 mess <- read.csv("MESSdat.csv", sep="\t", header=T)
 ```
 
-## Change data types
+### Change data types
 
 Treatment 0/1 and sex 0/1 have been stored as numeric; we change the data type to factor.
 ```{r}
@@ -92,7 +74,7 @@ mess$fparnsp <- as.factor(ifelse(mess$fparnsp==2,0,mess$fparnsp))
 mess$swab <- as.factor(ifelse(mess$swab==2,0,mess$swab))
 ```
 
-## Check censoring indicator
+### Check censoring indicator
 
 Next we want to see which way round the censoring indicator is used. We see that where the censoring indicator `ind1yr` is 1, the time to one year remission `int1yr` has minimum 365, whereas where `ind1yr` is 0, the minimum is 1. From this we deduce that the indicator is 1 when the variable is observed and 0 if the variable is censored.
 ```{r, results='hide'}
@@ -100,14 +82,14 @@ summary(mess$int1yr[mess$ind1yr==1])
 summary(mess$int1yr[mess$ind1yr==0])
 ```
 
-## Missing data
+### Missing data
 
 We verify that the same data are missing from `d1seiz` and `period`. These were probably subjects who couldn't remember the date of their first seizure, and/or whose medical records were missing. This suggests they are missing not at random - for instance if the subject can't remember the date it is likely to be a long time ago, i.e. higher values of `period`. However, since they are only 5 out of 1425 observations, we suspect it will not make much difference to treat them as if missing at random.
 ```{r, results='hide'}
 all.equal(which(is.na(mess$d1seiz)),which(is.na(mess$period)))
 ```
 
-## Investigate some variables
+### Investigate some variables
 
 Plotting the age at randomisation `ager` we see that it is positively skewed. This is plausible since it is a study of people with single seizure or recent diagnosis of epilepsy, and it is more likely that an individual has their first seizure at a younger age.
 ```{r, out.width = "50%"}
@@ -130,17 +112,17 @@ t.eeg
 mess$eeg[mess$eeg==0 & mess$abeeg==1] <- 1
 ```
 
-## Split age into bins
+### Split age into bins
 
 We use the age categories referred to in @marson2005.
 ```{r}
-mess$agecat <- cut(mess$ager,c(-1,5,9,19,29,39,49,59,69,100))
+mess$agecat <- cut(mess$ager,c(0,5,9,19,29,39,49,59,69,max(mess$ager)),include.lowest = T)
 t.agec <- table(mess$agecat)
 dimnames(t.agec) <- list(agecategory=levels(mess$agecat))
 t.agec
 ```
 
-## Transform some variables
+### Transform some variables
 
 We plotted histograms of each of the key (non-binary) variables. The variables `nseiz` and `period` are very positively-skewed. This is not surprising since this is a study on early epilepsy, so most subjects have only had one seizure and the first seizure was not long before entering the study.
 ```{r}
@@ -199,11 +181,14 @@ mfit <- survfit(surv1 ~ 1, conf.type = "log-log", data = mess)
 #plot(mfit, mark.time=T, xlab =factor(c(1,1)) "Days since randomization",ylab = "Survival")
 #summary(mfit,censored=T)
 par(mfrow=c(1,2))
+n.years <- seq(365.25, max(mess$intseiz1), by=365.25)
 mfit.trt <- survfit(surv1 ~ trt, conf.type = "log-log", data = mess)
-plot(mfit.trt, conf.int = T, mark.time=F, col = 2:3, xlab = "Days since randomisation", ylab = "survival probability")
+plot(mfit.trt, conf.int = T, mark.time=F, col =  2:3, xlab = "Years since randomisation", ylab = "Survival probability" ,xaxt = 'n')
+axis(side=1, at=n.years,labels = 1:length(n.years))
 legend("topright", legend = c("Immediate","Deferred"), col = 2:3, lty=1)
 mfit.sex <- survfit(surv1 ~ sex, conf.type = "log-log", data = mess)
-plot(mfit.sex, conf.int = T, mark.time=F, col = c("orange","brown"), xlab = "Days since randomisation",ylab = "survival probability")
+plot(mfit.sex, conf.int = T, mark.time=F, col = c("orange","brown"), xlab = "Years since randomisation",ylab = "Survival probability",xaxt = 'n')
+axis(side=1, at=n.years,labels = 1:length(n.years))
 legend("topright", legend = c("Male","Female"), col = c("orange","brown"), lty=1)
 
 #lfit <- survreg(surv1 ~ trt, data=mess)
@@ -252,8 +237,11 @@ summary(mycox4)$coefficients[,c(1,2,5)]
 #cox.zph(mycox4)
 ```
 
-
 # Aalen's additive model
+
+The proportional hazards assumption underlying Cox model might be in many cases too strict and lead to unrealistic conclusions. Moreover, it is not uncommon to consider that the effect of one or more covariates might change over time. In these cases the model proposed by @aalen1989linear provides a flexible way to tackle these issues. Unlike Cox model, in Aalen's model the effect of the covariate on the hazard function at time t is additive. In other words, the hazard function at time t is a linear function of the covariates. Each coefficient is a function allowed to vary over time; in this sense, the model is fully nonparametric. At time t, the value of the coefficient function is to be read as the variation with respect to the baseline hazard function induced by a change of one unit (level in case of categorical variables) in the covariates. 
+
+Aalen's additive model is widely used because of the easiness in the interpretation of the graphical results, that report the cumulative regression coefficient over time with 95% confidence bands. When the effect of the covariate is constant over time (like in Cox model), the cumulative regression coefficient will look like a straight line; on the contrary, if the effect becomes null only after a certain time point, the slope of the cumulative regression coefficient will decrease towards zero. When the covariate does not play a role in explaining the variability in the hazard function, the value 0 will be included in the confidence bands for all the time interval.
 
 ```{r}
 modaalen<-aalen(surv1 ~ trt + const(ager) + const(sex) + const(nseiz) + const(period) + const(abeeg), data = mess , n.sim=100)
@@ -268,8 +256,14 @@ plot(modaalen2)
 #plot(modaalen2)
 ```
 
-
 # Parametric survival models
+
+An alternative to the Cox model is to consider a parametric specification for the distribution of survival times. In particular, the class of accelerated failure time (AFT) models provides the natural extension in case the proportional hazard assumption does not work. Following the introduction provided by @hosmer2008applied, it is possible to write the distribution of the time to event for the $i$-th subject as 
+$$\log(t_i)=\mu+\beta^T x_i+\sigma \epsilon_i $$
+
+where $\sigma$ is a scale parameter and $\epsilon_i$ is an error term with a prespecified distribution (the choice for this distribution determines the type of model). Common choices for the regression models are exponential, Weibull, lognormal (when the distribution of $\epsilon$ and therefore the distribution of $ln(t)$ is normal) and loglogistic: this choice will affect the shape of the hazard function, that may be monotonic or having a maximum dependent on the scale parameter. The effects in this model are multiplicative on the time scale: in other words, the time to the event depends on the exponential of the linear combination of the covariates weighted by the coefficients. The name “accelerated failure time” arises from the fact that given 
+$$ t_i=\exp{[\beta^Tx_i]}\exp{[\sigma\epsilon_i]} $$
+the effect of the covariates is to “accelerate” or decelerate the time to the event of interest with respect to a subject with baseline characteristics (i.e., the one for which all the covariates assume value zero). This means that if for a given variable the coefficient is positive, the time to the event will increase, hence the effect of the covariate will be protective. Therefore, the sign of the coefficient has to be read in opposite way with respect to the proportional hazards models.
 
 ```{r, results='hide'}
 modpar1 <- survreg(surv1 ~ trt + ager + sex + nseiz + period + abeeg, mess, dist="exponential")
