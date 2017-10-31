@@ -8,9 +8,19 @@ bibliography: MESSbib.bib
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+library(survival)
+library(timereg)
+library(dplyr)
+library(randomForestSRC)
+library(ggRandomForests)
+#library(flexsurv)
+#library(plotmo)
 ```
 
+
 # Introduction
+
 Th MESS data is from a randomised controlled trial about treatment for epilepsy. The subjects in the study are patients who have had only one seizure or hve not had epilepsy for long. There are two treatments; either immediate or deferred. Patients assigned the deferred treatment are not prescribed anti-epileptic drugs after their first seizure, but the decision is revisited if they have further seizures.
 
 Because many people have only one seizure in their life, we don't necessarily want to put patients on anti-epileptic drugs after just one seizure. However, we also don't want patients going on to have further seizures that could have been prevented or reduced by starting treatment immediately.
@@ -33,12 +43,15 @@ Aalen's additive model is widely used because of the easiness in the interpretat
 
 
 # Data wrangling
-```{r}
-### http://www.sciencedirect.com/science/article/pii/S0140673605666949?via%3Dihub LANCET ARTICLE MARSON 2005
 
+```{r}
 mess <- read.csv("MESSdat.csv", sep="\t", header=T)
-#summary(mess)
-#head(mess)
+```
+
+## Change data types
+
+Treatment 0/1 and sex 0/1 have been stored as numeric; we change the data type to factor.
+```{r}
 mess$trt<-as.factor(mess$trt)
 mess$sex<-as.factor(mess$sex)
 ```
@@ -57,22 +70,6 @@ mess$d1seiz<-as.Date(mess$d1seiz,"%d/%m/%y")
 mess$rand<-as.Date(mess$rand,"%d/%m/%y")
 ```
 
-Next we want to see which way round the censoring indicator is used. We see that where the censoring indicator `ind1yr` is 1, the time to one year remission `int1yr` has minimum 365, whereas where `ind1yr` is 0, the minimum is 1. From this we deduce that the indicator is 1 when the variable is observed and 0 if the variable is censored.
-```{r}
-summary(mess$int1yr[mess$ind1yr==1])
-summary(mess$int1yr[mess$ind1yr==0])
-```
-
-Plotting the age at randomisation `ager` we see that it is positively skewed. This is plausible since it is a study of people with single seizure or recent diagnosis of epilepsy, and it is more likely that an individual has their first seizure at a younger age.
-```{r}
-hist(mess$ager,breaks=20)
-```
-
-We see that the number of subjects having each treatment is roughly equal, as was the design of the study.
-```{r}
-table(mess$trt)
-```
-
 We assume this variable must be an identifying number for the clinic where the subject entered the trial. As such, we format it as a factor.
 ```{r}
 table(mess$centre)
@@ -80,12 +77,7 @@ mess$centre <- as.factor(mess$centre)
 # maybe include in the model, by grouping them together? but it's a bit arbitrary - would be nice to know if the numbers are related to geographical location.
 ```
 
-We verify that the same data are missing from `d1seiz` and `period`. These were probably subjects who couldn't remember the date of their first seizure, and/or whose medical records were missing. This suggests they are missing not at random - for instance if the subject can't remember the date it is likely to be a long time ago, i.e. higher values of `period`. However, since they are only 5 out of 1425 observations, we suspect it will not make much difference to treat them as if missing at random.
-```{r}
-all.equal(which(is.na(mess$d1seiz)),which(is.na(mess$period)))
-```
-
-Next we find that the binary results for various medical tests have been stored as 1/2 = yes/no, so we convert these to 0/1 = no/yes.
+We find that the binary results for the various medical tests have been stored as 1/2 = yes/no. We convert these to 0/1 = no/yes.
 ```{r}
 # as.logical ?
 mess$eeg <- as.factor(ifelse(mess$eeg==2,0,mess$eeg))
@@ -98,7 +90,32 @@ mess$fparnsp <- as.factor(ifelse(mess$fparnsp==2,0,mess$fparnsp))
 mess$swab <- as.factor(ifelse(mess$swab==2,0,mess$swab))
 ```
 
-## Strange EEG results
+## Check censoring indicator
+
+Next we want to see which way round the censoring indicator is used. We see that where the censoring indicator `ind1yr` is 1, the time to one year remission `int1yr` has minimum 365, whereas where `ind1yr` is 0, the minimum is 1. From this we deduce that the indicator is 1 when the variable is observed and 0 if the variable is censored.
+```{r}
+summary(mess$int1yr[mess$ind1yr==1])
+summary(mess$int1yr[mess$ind1yr==0])
+```
+
+## Missing data
+
+We verify that the same data are missing from `d1seiz` and `period`. These were probably subjects who couldn't remember the date of their first seizure, and/or whose medical records were missing. This suggests they are missing not at random - for instance if the subject can't remember the date it is likely to be a long time ago, i.e. higher values of `period`. However, since they are only 5 out of 1425 observations, we suspect it will not make much difference to treat them as if missing at random.
+```{r}
+all.equal(which(is.na(mess$d1seiz)),which(is.na(mess$period)))
+```
+
+## Investigate some variables
+
+Plotting the age at randomisation `ager` we see that it is positively skewed. This is plausible since it is a study of people with single seizure or recent diagnosis of epilepsy, and it is more likely that an individual has their first seizure at a younger age.
+```{r}
+hist(mess$ager,breaks=20)
+```
+
+We see that the number of subjects having each treatment is roughly equal, as was the design of the study.
+```{r}
+table(mess$trt)
+```
 
 There is a mystery as to how some patients who have not had an EEG have recorded an abnormal EEG result. There are several possible explanations (different types of recording error), but we will assume the patients with an abnormal EEG have had an EEG. We adjust the `eeg` varaible accordingly. Since there are only five subjects in this category it shoudln't substantially affect any results.
 ```{r}
@@ -173,7 +190,6 @@ mtext("age",3)
 
 We plot Kaplan-Meier curves of the first seizure after randomization, grouped by treatment and sex. The first plot shows that the survival probability for those who received a deferred treatment is lower than for those immediately treated, at least for the first 5 years after the randomization. From the second plot it seems that sex does not have a significant effect on the survival probability.
 ```{r}
-library(survival)
 surv1 <- with(mess, Surv(intseiz1, indseiz1 == 1))
 mfit <- survfit(surv1 ~ 1, conf.type = "log-log", data = mess)
 #options(survfit.print.mean =T)
@@ -193,7 +209,12 @@ legend("topright", legend = c("Male","Female"), col = c("orange","brown"), lty=1
 #matplot(ptime$fit, 1-pct,xlab="Months", ylab="Survival", type='l', lty=c(1,2,2), col=1)
 ```
 
+
 # Cox proportional hazards model
+
+The Cox model relies on the strong assumption of *proportional hazards*, that is that a unit increase in a certain covariate has a multiplicative effect on the hazard rate. In particular, the hazard function $\lambda$ has the form
+$$\lambda(t|X) = \lambda_0(t)\exp{X^T \beta}$$
+where $X$ is the matrix of covariates and $\beta$ is the vector of coefficients to be estimated.
 
 First we fit a naive proportional hazards model with the covariates of interest. We see that the treatment `trt` is significant, as is the number `nseiz` of seizures prior to entering the study. This is to be expected since subjects with a tendency for more frequent seizures are likely to go less time before the first post-randomisation seizure regardless of treatment. The elapsed time between the subject's first seizure and their entry into the trial is slightly significant, which is also unsurprising.
 ```{r}
@@ -221,7 +242,7 @@ summary(mycox3)
 cox.zph(mycox3)
 ```
 
-Finally, we will include an interaction term between `trt` and `nseiz`, since it is plausible that the treatment may have a different effect on people who suffer more severely (indicated by having had more seizures). With this model the proportional hazards assumption is satisfied. However, including the interaction term has reduced the treatment effect, and indeed the interaction term is only slightly significant.
+Finally, we will include an interaction term between `trt` and `nseiz`, since it is plausible that the treatment may have a different effect on people who suffer more severely (indicated by having had more seizures). With this model the proportional hazards assumption seems to be satisfied. However, the interaction term is only slightly significant, and including the interaction reduces the estimated treatment effect.
 ```{r}
 mycox4 <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz.tr + period.tr + trt:nseiz.tr, data=mess)
 summary(mycox4)
@@ -232,7 +253,6 @@ cox.zph(mycox4)
 # Aalen's additive model
 
 ```{r}
-library(timereg)
 modaalen<-aalen(surv1 ~ trt + const(ager) + const(sex) + const(nseiz) + const(period) + const(abeeg), data = mess , n.sim=100)
 summary(modaalen)
 #par(mfrow=c(3,3))
@@ -258,7 +278,6 @@ modpar3 <- survreg(surv1 ~ trt + ager + sex + nseiz + period + abeeg, mess, dist
 modpar4 <- survreg(surv1 ~ trt + ager + sex + nseiz + period + abeeg, mess, dist="loglogistic")
 #summary(modpar4)
 
-# library(flexsurv)
 # modpar1 <- flexsurvreg(surv1 ~ trt + ager + sex + nseiz + period, data = mess, dist="weibull")
 # summary(modpar1)
 # modpar2 <- flexsurvreg(surv1 ~ trt + ager + sex + nseiz + period, data = mess, dist="lnorm")
@@ -304,11 +323,10 @@ colnames(parmodels.tr) <- c("N.obs","Loglik","df","AIC")
 rownames(parmodels.tr) <- c("exponential","weibull","lognormal","loglogistic")  
 parmodels.tr #the difference to be interpreted in terms of chisq(1) = 3.84 
 
-modpar.logn <- survreg(surv1 ~ . + trt:nseiz.tr - centre , covars, dist="lognormal")
+modpar.logn <- survreg(surv1 ~ . + trt:nseiz.tr - centre , covars, dist="lognormal") #using covars before it is defined... or is it covars1?
 ```
 
 ```{r}
-library(dplyr)
 covars <- transmute(mess, ager, sex, trt, nsp, ncp, nps, nmyo, nab, naab, ntc, noth, nseiz.tr, period.tr, eeg, abeeg, nsab, gparsp, gparnsp, fparsp, fparnsp, swab)
 ###DFNEW NOT WORKING!
 dfNew <- data.frame(sex=factor(c(0,0)), trt=factor(c(0,1)),ager=84,nseiz.tr=factor(c(1,1)),period.tr = 3.4, abeeg = factor(c(1,1)))
@@ -339,22 +357,29 @@ legend(x="topright", lwd=2, lty=c(1, 2, 1, 2), col=c("blue", "blue", "red", "red
 # mynet <- glmnet(x=XX, y=YY, family="cox")
 # mycvnet <- cv.glmnet(x=XX, y=YY, family="cox")
 # 
-# library(plotmo)
 # plot_glmnet(mynet, s=mycvnet$lambda.min)
 ```
 
-# Random survival forest
 
-```{r}
-library(randomForestSRC)
-library(ggRandomForests)
-rsf.surv1<-rfsrc(Surv(intseiz1, indseiz1) ~ trt + ager + sex + nseiz.tr + period.tr + abeeg, data = mess, ntree = 100, importance=TRUE,  tree.err = T)
-# data.rsf<- cbind(covars,mess$intseiz1, mess$indseiz1)
-rsf.surv1<-rfsrc(Surv(intseiz1, indseiz1) ~ trt + ager + sex + nseiz.tr + period.tr +  nsp + nps + nmyo + nab +
-                   naab + ntc + noth + eeg + abeeg + nsab + gparsp + gparnsp + fparsp + fparnsp + swab, data = mess, ntree = 1000, importance=TRUE,  tree.err = T)
-print(rsf.surv1)
-plot(rsf.surv1)
+
+# Random survival forests
+
+We would like to ensure that the set of covariates we include in the model is relatively stable. Up to now we have only selected covariates insofar as the fitted log-normal model has some significant and some insignificant covariates. We now compare the set of significant covariates in the log-normal model to those obtained using a non-parametric variable selection technique, namely random survival forests.
+
+Again we omit the `centre` variable since it destabilises the model, having a large number of levels many of which correspond to only one observation. If we had some additonal information say about suitably groupings of centres it would be sensible to include it. For instance, in Marson et al 2005 the authors distinguish between UK and non-UK centres. However we do not have any information linking the number of a centre to its location. However we now inlcude the counts of every type of seizure, and the results of all tests, as possible covariates. 
+
+We still omit date variables. we found that the error rate didn't really decrease by creating more than 100-200 trees, so we use `ntree = 200`. There is not a universal threshold on the `vimp` above which variables should be considered selected, but in the literature `vimp=0.02` has been suggested as a rule-of-thumb.
+```{r, cache=TRUE}
+rsf.surv1<-rfsrc(Surv(intseiz1, indseiz1, type="right") ~ ager + sex + trt + nsp + ncp + nps + nmyo + nab + naab + ntc + noth + nseiz.tr + period.tr + eeg + abeeg + nsab + gparsp + gparnsp + fparsp + fparnsp + swab, data=mess, ntree = 200, importance=TRUE,  tree.err = T)
+
+#print(rsf.surv1)
+#plot(rsf.surv1)
 gg_dta <- gg_vimp(rsf.surv1)
 plot(gg_dta)
 ```
 
+As we found in our exploratory analysis, `nseiz` and `trt` are the most important covariates, with `abeeg` also significant. We also see the counts of several particular types of seizure are important, which weren't included in our initial analysis.
+
+The six most important variables in random forests were all significant in the log-normal model, which is encouraging. On the whole, random forests has selected roughly the same variables as the log-normal model, with only a few discrepancies. For instance, `nps` (one of the seizure counts) was significant in the log-normal model (p=0.009) but was certainly not selected by random forests.
+
+For the purposes of our model, we will include only the covariates which the parametric and non-parametric approaches have both selected, namely `nseiz`, `trt`, `nsp`, `ncp`, `nmyo`, and `abeeg`. This captures the most important covariates of each approach.
