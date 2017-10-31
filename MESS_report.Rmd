@@ -121,10 +121,10 @@ We plot Kaplan-Meier curves of the first seizure after randomization, grouped by
 
 ```{r}
 library(survival)
-mess$surv1 <- with(mess, Surv(intseiz1, indseiz1 == 1))
+surv1 <- with(mess, Surv(intseiz1, indseiz1 == 1))
 mfit <- survfit(surv1 ~ 1, conf.type = "log-log", data = mess)
 #options(survfit.print.mean =T)
-#plot(mfit, mark.time=T, xlab = "Days since randomization",ylab = "Survival")
+#plot(mfit, mark.time=T, xlab =factor(c(1,1)) "Days since randomization",ylab = "Survival")
 #summary(mfit,censored=T)
 par(mfrow=c(1,2))
 mfit.trt <- survfit(surv1 ~ trt, conf.type = "log-log", data = mess)
@@ -261,19 +261,21 @@ summary(modpar3)
 # ptime <- predict(modpar2, newdata=data.frame(trt=0,ager=24,sex=0,nseiz=1,period= 438.4), type='quantile',p=pct, se=TRUE)
 # matplot(cbind(ptime$fit, ptime$fit + 2*ptime$se.fit, ptime$fit - 2*ptime$se.fit)/30.5, 1-pct,xlab="Months", ylab="Survival", type='l', lty=c(1,2,2), col=1)
 
-dfNew <- data.frame(sex=factor(c(0,0)), trt=factor(c(0,1)),ager=24,nseiz=1,period = 438.4, abeeg = factor(c(1,1)))
+
+###DFNEW NOT WORKING!
+dfNew <- data.frame(sex=factor(c(0,0)), trt=factor(c(0,1)),ager=84,nseiz.tr=factor(c(1,1)),period.tr = 3.4, abeeg = factor(c(1,1)))
 percs <- (1:99)/100
-FLogN <- predict(modpar3, newdata=dfNew, type="quantile", p=percs, se=TRUE)
+FLogN <- predict(modpar3.tr, newdata=dfNew, type="quantile", p=percs, se=TRUE)
 matplot(cbind(FLogN$fit[1, ],
               FLogN$fit[1, ] - 2*FLogN$se.fit[1, ],
-              FLogN$fit[1, ] + 2*FLogN$se.fit[1, ]), 1-percs,
-        type="l", main=expression(paste("LogNormal-Fit ", hat(S)(t), " with SE")),xlim = c(0,3000),
-        xlab="t", ylab="Survival", lty=c(1, 2, 2), lwd=2, col="blue")
+              FLogN$fit[1, ] + 2*FLogN$se.fit[1, ])/365.25, 1-percs,
+        type="l", main=expression(paste("LogNormal-Fit ", hat(S)(t), " with SE")),xlim = c(0,10),
+        xlab="Time (in years)", ylab="Survival", lty=c(1, 2, 2), lwd=2, col="blue")
 matlines(cbind(FLogN$fit[2, ],
                FLogN$fit[2, ] - 2*FLogN$se.fit[2, ],
-               FLogN$fit[2, ] + 2*FLogN$se.fit[2, ])/30.5, 1-percs, col="red", lwd=2)
+               FLogN$fit[2, ] + 2*FLogN$se.fit[2, ])/365.25, 1-percs, col="red", lwd=2)
 legend(x="topright", lwd=2, lty=c(1, 2, 1, 2), col=c("blue", "blue", "red", "red"),
-       legend=c("Trt 0 (immediate)", "+- 2*SE", "Trt 0 (deferred)", "+- 2*SE"))
+       legend=c("Trt 1 (immediate)", "+- 2*SE", "Trt 0 (deferred)", "+- 2*SE"))
 ```
 
 Now let us consider the transformed variables.
@@ -292,11 +294,14 @@ parmodels.tr[4,] <- c(summary(modpar4.tr)$n, modpar4.tr$loglik[1],summary(modpar
 colnames(parmodels.tr) <- c("N.obs","Loglik","df","AIC")
 rownames(parmodels.tr) <- c("exponential","weibull","lognormal","loglogistic")  
 parmodels.tr #the difference to be interpreted in terms of chisq(1) = 3.84 
+
+modpar.logn <- survreg(surv1 ~ . + trt:nseiz.tr - centre , covars, dist="lognormal")
 ```
 
 # Survival Lasso
 ```{r}
-# covars <- transmute(mess, ager, sex, trt, nsp, ncp, nps, nmyo, nab, naab, ntc, noth, nseiz.tr, period.tr, eeg, abeeg, nsab, gparsp, gparnsp, fparsp, fparnsp, swab)
+library(dplyr)
+covars <- transmute(mess, ager, sex, trt, nsp, ncp, nps, nmyo, nab, naab, ntc, noth, nseiz.tr, period.tr, eeg, abeeg, nsab, gparsp, gparnsp, fparsp, fparnsp, swab)
 # 
 # XX <- model.matrix(Surv(mess$intseiz1, mess$indseiz1, type="right") ~ ager + sex + trt + nsp + ncp + nps + nmyo + nab + naab + ntc + noth + nseiz.tr + period.tr + eeg + abeeg + nsab + gparsp + gparnsp + fparsp + fparnsp + swab, data=mess)
 # 
@@ -309,3 +314,27 @@ parmodels.tr #the difference to be interpreted in terms of chisq(1) = 3.84
 # library(plotmo)
 # plot_glmnet(mynet, s=mycvnet$lambda.min)
 ```
+
+# Random survival forest
+
+```{r}
+library(randomForestSRC)
+library(ggRandomForests)
+rsf.surv1<-rfsrc(Surv(intseiz1, indseiz1) ~ trt + ager + sex + nseiz.tr + period.tr + abeeg, data = mess, ntree = 100, importance=TRUE,  tree.err = T)
+# data.rsf<- cbind(covars,mess$intseiz1, mess$indseiz1)
+rsf.surv1<-rfsrc(Surv(intseiz1, indseiz1) ~ trt + ager + sex + nseiz.tr + period.tr +  nsp + nps + nmyo + nab +
+                   naab + ntc + noth + eeg + abeeg + nsab + gparsp + gparnsp + fparsp + fparnsp + swab, data = mess, ntree = 1000, importance=TRUE,  tree.err = T)
+print(rsf.surv1)
+plot(rsf.surv1)
+gg_dta <- gg_vimp(rsf.surv1)
+plot(gg_dta)
+
+
+
+
+
+
+
+
+```
+
