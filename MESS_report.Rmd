@@ -7,7 +7,7 @@ bibliography: MESSbib.bib
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, fig.align="center")
+knitr::opts_chunk$set(echo = FALSE, fig.align="center", warning=FALSE)
 
 library(survival)
 library(timereg)
@@ -34,9 +34,10 @@ Our aim is to construct a model considering some of these factors, which can be 
 ### Aalen's additive model
 
 The proportional hazards assumption underlying Cox model might be in many cases too strict and lead to unrealistic conclusions. Moreover, it is not uncommon to consider that the effect of one or more covariates might change over time. In these cases the model proposed by @aalen1989linear provides a flexible way to tackle these issues. Unlike Cox model, in Aalen's model the effect of the covariate on the hazard function at time t is additive. In other words, the hazard function at time t is a linear function of the covariates. Each coefficient is a function allowed to vary over time; in this sense, the model is fully nonparametric. At time t, the value of the coefficient function is to be read as the variation with respect to the baseline hazard function induced by a change of one unit (level in case of categorical variables) in the covariates. 
+
 Aalen's additive model is widely used because of the easiness in the interpretation of the graphical results, that report the cumulative regression coefficient over time with 95% confidence bands. When the effect of the covariate is constant over time (like in Cox model), the cumulative regression coefficient will look like a straight line; on the contrary, if the effect becomes null only after a certain time point, the slope of the cumulative regression coefficient will decrease towards zero. When the covariate does not play a role in explaining the variability in the hazard function, the value 0 will be included in the confidence bands for all the time interval.
 
-### Parametric survival models
+# Parametric survival models
 
 An alternative to the Cox model is to consider a parametric specification for the distribution of survival times
 
@@ -55,7 +56,6 @@ Treatment 0/1 and sex 0/1 have been stored as numeric; we change the data type t
 mess$trt<-as.factor(mess$trt)
 mess$sex<-as.factor(mess$sex)
 ```
-
 We see that there are many NAs in the columns relating to dates, but this is not shown on the summary because they are formatted as character. We format the dates as dates.
 ```{r}
 mess$d1sp<-as.Date(mess$d1sp,"%d/%m/%y")
@@ -69,14 +69,12 @@ mess$d1oth<-as.Date(mess$d1oth,"%d/%m/%y")
 mess$d1seiz<-as.Date(mess$d1seiz,"%d/%m/%y")
 mess$rand<-as.Date(mess$rand,"%d/%m/%y")
 ```
-
 We assume the `centre` variable must be an identifying number for the clinic where the subject entered the trial. As such, we format it as a factor.
 ```{r, results='hide'}
 table(mess$centre)
 mess$centre <- as.factor(mess$centre)
 # maybe include in the model, by grouping them together? but it's a bit arbitrary - would be nice to know if the numbers are related to geographical location.
 ```
-
 We find that the binary results for the various medical tests have been stored as 1/2 = yes/no. We convert these to 0/1 = no/yes.
 ```{r}
 # as.logical ?
@@ -108,11 +106,11 @@ all.equal(which(is.na(mess$d1seiz)),which(is.na(mess$period)))
 ## Investigate some variables
 
 Plotting the age at randomisation `ager` we see that it is positively skewed. This is plausible since it is a study of people with single seizure or recent diagnosis of epilepsy, and it is more likely that an individual has their first seizure at a younger age.
-```{r, out.width = "70%"}
-hist(mess$ager,breaks=20)
+```{r, out.width = "50%"}
+hist(mess$ager,breaks=20, col="grey", xlab="age at randomisation", main="")
 ```
 
-We see that the number of subjects having each treatment is roughly equal, as was the design of the study.
+We see that the number of subjects having each treatment is roughly equal, in accordance with the design of the study.
 ```{r}
 t.trt <- table(mess$trt)
 dimnames(t.trt) <- list(treatment=c(0,1))
@@ -143,10 +141,10 @@ t.agec
 We plotted histograms of each of the key (non-binary) variables. The variables `nseiz` and `period` are very positively-skewed. This is not surprising since this is a study on early epilepsy, so most subjects have only had one seizure and the first seizure was not long before entering the study.
 ```{r}
 par(mfrow=c(2,2))
-hist(mess$intseiz1, breaks=20)
-hist(mess$ager, breaks=20)
-hist(mess$nseiz, breaks=20) #this one should be transformed
-hist(mess$period, breaks=20) #and this one
+hist(mess$intseiz1, breaks=20, col="grey", main="", xlab="time to first seizure post-r.")
+hist(mess$ager, breaks=20, col="grey", main="", xlab="age")
+hist(mess$nseiz, breaks=20, col="grey", main="", xlab="number of previous seizures")
+hist(mess$period, breaks=20, col="grey", main="", xlab="time since first seizure pre-r.")
 ```
 We will try transforming `period` and `nseiz`. For `nseiz`, we simply use the indicator of whether it is 1 or more than 1, since over half of the patients have `nseiz==1`. We take the logarithm of `period` to reduce the skew.
 
@@ -154,7 +152,7 @@ We will try transforming `period` and `nseiz`. For `nseiz`, we simply use the in
 #par(mfrow=c(1,2))
 mess$period.tr <- log(mess$period + 1)
 mess$nseiz.tr <- mess$nseiz > 1
-hist(mess$period.tr, breaks = 20)
+hist(mess$period.tr, breaks = 20, col="grey")
 #hist(mess$nseiz.tr)
 ```
 
@@ -175,8 +173,7 @@ We check that the randomisation is balanced over sex and age. There is a noticea
 t.sex <- table(mess$sex,mess$trt)
 colnames(t.sex)<-c('immediate','deferred')
 rownames(t.sex)<-c('male','female')
-plot(t.sex, main="randomisation by sex", ylab="treatment")
-mtext("sex",3)
+plot(t.sex, main="randomisation by sex", ylab="treatment", xlab='')
 text(0.25,0.75,t.sex[1,1])
 text(0.75,0.75,t.sex[2,1])
 text(0.25,0.25,t.sex[1,2])
@@ -184,8 +181,7 @@ text(0.75,0.25,t.sex[2,2])
 
 t.age <- table(mess$agecat, mess$trt)
 colnames(t.age)<-c('immediate','deferred')
-plot(t.age, main="randomisation by age", ylab="treatment")
-mtext("age",3)
+plot(t.age, main="randomisation by age", ylab="treatment", xlab='')
 ```
 
 
@@ -200,10 +196,10 @@ mfit <- survfit(surv1 ~ 1, conf.type = "log-log", data = mess)
 #summary(mfit,censored=T)
 par(mfrow=c(1,2))
 mfit.trt <- survfit(surv1 ~ trt, conf.type = "log-log", data = mess)
-plot(mfit.trt, conf.int = T, mark.time=F, col = 2:3, xlab = "Days since randomization", ylab = "Survival")
+plot(mfit.trt, conf.int = T, mark.time=F, col = 2:3, xlab = "Days since randomisation", ylab = "survival probability")
 legend("topright", legend = c("Immediate","Deferred"), col = 2:3, lty=1)
 mfit.sex <- survfit(surv1 ~ sex, conf.type = "log-log", data = mess)
-plot(mfit.sex, conf.int = T, mark.time=F, col = c("orange","brown"), xlab = "Days since randomization",ylab = "Survival")
+plot(mfit.sex, conf.int = T, mark.time=F, col = c("orange","brown"), xlab = "Days since randomisation",ylab = "survival probability")
 legend("topright", legend = c("Male","Female"), col = c("orange","brown"), lty=1)
 
 #lfit <- survreg(surv1 ~ trt, data=mess)
@@ -217,12 +213,12 @@ legend("topright", legend = c("Male","Female"), col = c("orange","brown"), lty=1
 
 The Cox model relies on the strong assumption of *proportional hazards*, that is that a unit increase in a certain covariate has a multiplicative effect on the hazard rate. In particular, the hazard function $\lambda$ has the form
 $$\lambda(t|X) = \lambda_0(t)\exp{(X^T \beta)}$$
-where $X$ is the matrix of covariates and $\beta$ is the vector of coefficients to be estimated.
+where $X$ is the matrix of covariates and $\beta$ is the vector of coefficients to be estimated, and $\lambda_0(t)$ is the baseline hazard (i.e. when all covariates are zero). The exponential of a coefficient $\exp(\beta_i)$ represents the multiplicative effect on the hazard resulting from a unit increase in the corresponding covariate.
 
 First we fit a naive proportional hazards model with the covariates of interest. We see that the treatment `trt` is significant, as is the number `nseiz` of seizures prior to entering the study. This is to be expected since subjects with a tendency for more frequent seizures are likely to go less time before the first post-randomisation seizure regardless of treatment. The elapsed time `period` between the subject's first seizure and their entry into the trial is slightly significant, which is also unsurprising.
 ```{r}
 mycox <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz + period, data=mess)
-#print(mycox)
+summary(mycox)$coefficients[,c(1,2,5)]
 ```
 Next we assess whether proportional hazards is a suitable assumption for these data. We see from the residual plots that the treatment seems to have a decreasing effect over time, but the residuals of the other covariates don't seem to vary over time. This is confirmed by the small p-value for `trt` in the test of the proportional hazards assumption. The treatment effect decreasing over time is indicative that a proportional hazards model is not suitable, but we will try a few fixes before abandoning the Cox model completely.
 ```{r}
@@ -234,21 +230,21 @@ Next we assess whether proportional hazards is a suitable assumption for these d
 Next we try adding into the model an interaction term of treatment with time, to correct for the problem with the first model. We see, as expected, that the interaction term is very significant. However the proportional hazards model is still rejected.
 ```{r}
 mycox2 <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz + period + trt:intseiz1, data=mess)
-#print(mycox2)
+summary(mycox2)$coefficients[,c(1,2,5)]
 #cox.zph(mycox2)
 ```
 
 Next we fit the model using the transformed versions of `period` and `nseiz`. The significant covariates are largely the same as in the first model, however the assumption of proportional hazards is not supported in the `trt` and `nseiz` terms.
 ```{r}
 mycox3 <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz.tr + period.tr, data=mess)
-#print(mycox3)
+summary(mycox3)$coefficients[,c(1,2,5)]
 #cox.zph(mycox3)
 ```
 
 Finally, in the next model we include an interaction term between `trt` and `nseiz`, since it is plausible that the treatment may have a different effect on people who suffer more severely (indicated by having had more seizures previously). With this model the proportional hazards assumption appears to be satisfied. However we find that the interaction term is only slightly significant, and including the interaction drastically reduces the estimated treatment effect.
 ```{r}
 mycox4 <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz.tr + period.tr + trt:nseiz.tr, data=mess)
-#print(mycox4)
+summary(mycox4)$coefficients[,c(1,2,5)]
 #cox.zph(mycox4)
 ```
 
@@ -377,7 +373,7 @@ plot(gg_dta)
 
 As we found in our exploratory analysis, `nseiz` and `trt` are the most important covariates, with `abeeg` also significant. We also see the counts of several particular types of seizure are important, which weren't included in our initial analysis.
 
-The six most important variables in random forests were all significant in the log-normal model, which is encouraging. On the whole, random forests has selected roughly the same variables as the log-normal model, with only a few discrepancies. For instance, `nps` (one of the seizure counts) was significant in the log-normal model (p=0.009) but was certainly not selected by random forests.
+The six most important variables in random forests were all significant in the log-normal model, which is encouraging. On the whole, random forests has selected roughly the same variables as the log-normal model, with only a few discrepancies. For instance, `nps` (one of the seizure counts) was significant in the log-normal model (p=0.009) but was not selected by random forests.
 
 For the purposes of our model, we will include only the covariates which the parametric and non-parametric approaches have both selected, namely `nseiz`, `trt`, `ncp`, `nsp`, `abeeg`, and `nmyo`. This captures the most important covariates of each approach.
 
