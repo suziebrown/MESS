@@ -38,7 +38,7 @@ Aalen's additive model is widely used because of the easiness in the interpretat
 
 ### Parametric survival models
 
-An alternative to the Cox model is to consider a parametric specification for the hazard function. The 
+An alternative to the Cox model is to consider a parametric specification for the hazard function. 
 
 
 
@@ -149,7 +149,7 @@ hist(mess$nseiz, breaks=20) #this one should be transformed
 hist(mess$period, breaks=20) #and this one
 ```
 We will try transforming `period` and `nseiz`. For `nseiz`, we simply use the indicator of whether it is 1 or more than 1, since over half of the patients have `nseiz==1`. We take the logarithm of `period` to reduce the skew.
-```{r, echo=FALSE, eval=FALSE}
+```{r, echo=FALSE}
 #par(mfrow=c(1,2))
 mess$period.tr <- log(mess$period + 1)
 mess$nseiz.tr <- mess$nseiz > 1
@@ -385,3 +385,5 @@ As we found in our exploratory analysis, `nseiz` and `trt` are the most importan
 The six most important variables in random forests were all significant in the log-normal model, which is encouraging. On the whole, random forests has selected roughly the same variables as the log-normal model, with only a few discrepancies. For instance, `nps` (one of the seizure counts) was significant in the log-normal model (p=0.009) but was certainly not selected by random forests.
 
 For the purposes of our model, we will include only the covariates which the parametric and non-parametric approaches have both selected, namely `nseiz`, `trt`, `nsp`, `ncp`, `nmyo`, and `abeeg`. This captures the most important covariates of each approach.
+
+## References
