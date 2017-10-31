@@ -195,10 +195,7 @@ legend("topright", legend = c("Male","Female"), col = c("orange","brown"), lty=1
 #matplot(ptime$fit, 1-pct,xlab="Months", ylab="Survival", type='l', lty=c(1,2,2), col=1)
 ```
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 2af6785f470e6a805ceb00d3fb756829de244954
 # Cox proportional hazards model
 
 The Cox model relies on the strong assumption of *proportional hazards*, that is that a unit increase in a certain covariate has a multiplicative effect on the hazard rate. In particular, the hazard function $\lambda$ has the form
