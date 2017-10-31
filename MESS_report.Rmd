@@ -259,9 +259,9 @@ summary(modaalen)
 plot(modaalen)
 modaalen2<-aalen(surv1 ~ trt + const(ager) + sex + nseiz.tr + period.tr + abeeg , data = mess , n.sim=100)
 #modaalen3<-aalen(surv1 ~ . - ager + const(ager), data = covars , n.sim=100)
-x11()
+#x11()
 plot(modaalen2)
-dev.off()
+#dev.off()
 #plot(modaalen2)
 ```
 
