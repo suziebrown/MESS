@@ -38,7 +38,7 @@ Aalen's additive model is widely used because of the easiness in the interpretat
 
 ### Parametric survival models
 
-An alternative to the Cox model is to consider a parametric specification for the hazard function. 
+An alternative to the Cox model is to consider a parametric specification for the distribution of survival times
 
 
 
