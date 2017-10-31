@@ -31,7 +31,7 @@ Our aim is to construct a model considering some of these factors, which can be 
 
 # Methods
 
-### Aalen's additive model
+# Aalen's additive model
 
 The proportional hazards assumption underlying Cox model might be in many cases too strict and lead to unrealistic conclusions. Moreover, it is not uncommon to consider that the effect of one or more covariates might change over time. In these cases the model proposed by @aalen1989linear provides a flexible way to tackle these issues. Unlike Cox model, in Aalen's model the effect of the covariate on the hazard function at time t is additive. In other words, the hazard function at time t is a linear function of the covariates. Each coefficient is a function allowed to vary over time; in this sense, the model is fully nonparametric. At time t, the value of the coefficient function is to be read as the variation with respect to the baseline hazard function induced by a change of one unit (level in case of categorical variables) in the covariates. 
 
@@ -39,8 +39,12 @@ Aalen's additive model is widely used because of the easiness in the interpretat
 
 # Parametric survival models
 
-An alternative to the Cox model is to consider a parametric specification for the distribution of survival times
+An alternative to the Cox model is to consider a parametric specification for the distribution of survival times. In particular, the class of accelerated failure time (AFT) models provides the natural extension in case the proportional hazard assumption does not work. Following the introduction provided by @hosmer2008applied, it is possible to write the distribution of the time to event for the $i$-th subject as 
+$$\log(t_i)=\mu+\beta^T x_i+\sigma \epsilon_i $$
 
+where $\sigma$ is a scale parameter and $\epsilon_i$ is an error term with a prespecified distribution (the choice for this distribution determines the type of model). Common choices for the regression models are exponential, Weibull, lognormal (when the distribution of $\epsilon$ and therefore the distribution of $ln(t)$ is normal) and loglogistic: this choice will affect the shape of the hazard function, that may be monotonic or having a maximum dependent on the scale parameter. The effects in this model are multiplicative on the time scale: in other words, the time to the event depends on the exponential of the linear combination of the covariates weighted by the coefficients. The name “accelerated failure time” arises from the fact that given 
+$$ t_i=\exp{[\beta^Tx_i]}\exp{[\sigma\epsilon_i]} $$
+the effect of the covariates is to “accelerate” or decelerate the time to the event of interest with respect to a subject with baseline characteristics (i.e., the one for which all the covariates assume value zero). This means that if for a given variable the coefficient is positive, the time to the event will increase, hence the effect of the covariate will be protective. Therefore, the sign of the coefficient has to be read in opposite way with respect to the proportional hazards models.
 
 
 # Data wrangling
@@ -376,5 +380,7 @@ As we found in our exploratory analysis, `nseiz` and `trt` are the most importan
 The six most important variables in random forests were all significant in the log-normal model, which is encouraging. On the whole, random forests has selected roughly the same variables as the log-normal model, with only a few discrepancies. For instance, `nps` (one of the seizure counts) was significant in the log-normal model (p=0.009) but was not selected by random forests.
 
 For the purposes of our model, we will include only the covariates which the parametric and non-parametric approaches have both selected, namely `nseiz`, `trt`, `ncp`, `nsp`, `abeeg`, and `nmyo`. This captures the most important covariates of each approach.
+
+# Further research
 
 ## References
