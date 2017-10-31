@@ -179,9 +179,6 @@ legend("topright", legend = c("Male","Female"), col = c("orange","brown"), lty=1
 #matplot(ptime$fit, 1-pct,xlab="Months", ylab="Survival", type='l', lty=c(1,2,2), col=1)
 ```
 
-
-
-
 # Cox proportional hazards model
 
 First we fit a naive proportional hazards model with the covariates of interest. We see that the treatment `trt` is significant, as is the number `nseiz` of seizures prior to entering the study. This is to be expected since subjects with a tendency for more frequent seizures are likely to go less time before the first post-randomisation seizure regardless of treatment. The elapsed time between the subject's first seizure and their entry into the trial is slightly significant, which is also unsurprising.
@@ -226,7 +223,11 @@ modaalen<-aalen(surv1 ~ trt + const(ager) + const(sex) + const(nseiz) + const(pe
 summary(modaalen)
 #par(mfrow=c(3,3))
 plot(modaalen)
-#modaalen2<-aalen(surv1 ~ trt + const(ager) + const(sex) + nseiz + const(period) + const(abeeg), data = mess , n.sim=100)
+modaalen2<-aalen(surv1 ~ trt + const(ager) + sex + nseiz.tr + period.tr + abeeg , data = mess , n.sim=100)
+#modaalen3<-aalen(surv1 ~ . - ager + const(ager), data = covars , n.sim=100)
+x11()
+plot(modaalen2)
+dev.off()
 #plot(modaalen2)
 ```
 
