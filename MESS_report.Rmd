@@ -296,6 +296,16 @@ parmodels.tr #the difference to be interpreted in terms of chisq(1) = 3.84
 
 # Survival Lasso
 ```{r}
-covars <- transmute(mess, ager, sex, trt, centre, nsp, ncp, nps, nmyo, nab, naab, ntc, noth, nseiz.tr, period.tr, eeg, abeeg, nsab, gparsp, gparnsp, fparsp, fparnsp, swab)
-
+# covars <- transmute(mess, ager, sex, trt, nsp, ncp, nps, nmyo, nab, naab, ntc, noth, nseiz.tr, period.tr, eeg, abeeg, nsab, gparsp, gparnsp, fparsp, fparnsp, swab)
+# 
+# XX <- model.matrix(Surv(mess$intseiz1, mess$indseiz1, type="right") ~ ager + sex + trt + nsp + ncp + nps + nmyo + nab + naab + ntc + noth + nseiz.tr + period.tr + eeg + abeeg + nsab + gparsp + gparnsp + fparsp + fparnsp + swab, data=mess)
+# 
+# YY=Surv(mess$intseiz1, mess$indseiz1, type="right")
+# YY <- YY[complete.cases(covars),] #remove rows with missing values (there are only 5/1425)
+# 
+# mynet <- glmnet(x=XX, y=YY, family="cox")
+# mycvnet <- cv.glmnet(x=XX, y=YY, family="cox")
+# 
+# library(plotmo)
+# plot_glmnet(mynet, s=mycvnet$lambda.min)
 ```
