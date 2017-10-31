@@ -31,14 +31,14 @@ Our aim is to construct a model considering some of these factors, which can be 
 
 # Methods
 
-## Aalen's additive model
+### Aalen's additive model
 
-The proportional hazards assumption underlying Cox model might be in many cases too strict and lead to unrealistic conclusions. Moreover, it is not ... to consider that the effect of one or more covariates might change over time. In these cases the model proposed by @aalen1989linear provides a flexible way to tackle these issues. Unlike Cox model, in Aalen's model the effect of the covariate on the hazard function at time t is additive. In other words, the hazard function at time t is a linear function of the covariates. Each coefficient is a function allowed to vary over time; in this sense, the model is fully nonparametric. At time t, the value of the coefficient function is to be read as the variation with respect to the baseline hazard function induced by a change of one unit (level in case of categorical variables) in the covariates. 
+The proportional hazards assumption underlying Cox model might be in many cases too strict and lead to unrealistic conclusions. Moreover, it is not uncommon to consider that the effect of one or more covariates might change over time. In these cases the model proposed by @aalen1989linear provides a flexible way to tackle these issues. Unlike Cox model, in Aalen's model the effect of the covariate on the hazard function at time t is additive. In other words, the hazard function at time t is a linear function of the covariates. Each coefficient is a function allowed to vary over time; in this sense, the model is fully nonparametric. At time t, the value of the coefficient function is to be read as the variation with respect to the baseline hazard function induced by a change of one unit (level in case of categorical variables) in the covariates. 
 Aalen's additive model is widely used because of the easiness in the interpretation of the graphical results, that report the cumulative regression coefficient over time with 95% confidence bands. When the effect of the covariate is constant over time (like in Cox model), the cumulative regression coefficient will look like a straight line; on the contrary, if the effect becomes null only after a certain time point, the slope of the cumulative regression coefficient will decrease towards zero. When the covariate does not play a role in explaining the variability in the hazard function, the value 0 will be included in the confidence bands for all the time interval.
 
-## Parametric survival models
+### Parametric survival models
 
-
+An alternative to the Cox model is to consider a parametric specification for the hazard function. The 
 
 
 
@@ -213,7 +213,7 @@ legend("topright", legend = c("Male","Female"), col = c("orange","brown"), lty=1
 # Cox proportional hazards model
 
 The Cox model relies on the strong assumption of *proportional hazards*, that is that a unit increase in a certain covariate has a multiplicative effect on the hazard rate. In particular, the hazard function $\lambda$ has the form
-$$\lambda(t|X) = \lambda_0(t)\exp{X^T \beta}$$
+$$\lambda(t|X) = \lambda_0(t)\exp{(X^T \beta)}$$
 where $X$ is the matrix of covariates and $\beta$ is the vector of coefficients to be estimated.
 
 First we fit a naive proportional hazards model with the covariates of interest. We see that the treatment `trt` is significant, as is the number `nseiz` of seizures prior to entering the study. This is to be expected since subjects with a tendency for more frequent seizures are likely to go less time before the first post-randomisation seizure regardless of treatment. The elapsed time between the subject's first seizure and their entry into the trial is slightly significant, which is also unsurprising.
