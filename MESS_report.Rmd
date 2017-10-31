@@ -1,7 +1,7 @@
 ---
 title: "Modelling the MESS Data"
 author: "Suzie Brown and Marco Palma"
-date: "26 October 2017"
+date: "1 November 2017"
 output: pdf_document
 bibliography: MESSbib.bib
 ---
@@ -130,7 +130,7 @@ mess$eeg[mess$eeg==0 & mess$abeeg==1] <- 1
 
 ## Split age into bins
 
-We use the age categories referred to in Marson et al 2005.
+We use the age categories referred to in @marson2005.
 ```{r}
 mess$agecat <- cut(mess$ager,c(-1,5,9,19,29,39,49,59,69,100))
 t.agec <- table(mess$agecat)
@@ -365,7 +365,7 @@ covars <- transmute(mess, ager, sex, trt, nsp, ncp, nps, nmyo, nab, naab, ntc, n
 
 We would like to ensure that the set of covariates we include in the model is relatively stable. Up to now we have only selected covariates insofar as the fitted log-normal model has some significant and some insignificant covariates. We now compare the set of significant covariates in the log-normal model to those obtained using a non-parametric variable selection technique, namely random survival forests.
 
-Again we omit the `centre` variable since it destabilises the model, having a large number of levels many of which correspond to only one observation. If we had some additonal information say about suitably groupings of centres it would be sensible to include it. For instance, in Marson et al 2005 the authors distinguish between UK and non-UK centres. However we do not have any information linking the number of a centre to its location. However we now inlcude the counts of every type of seizure, and the results of all tests, as possible covariates. 
+Again we omit the `centre` variable since it destabilises the model, having a large number of levels many of which correspond to only one observation. If we had some additonal information say about suitably groupings of centres it would be sensible to include it. For instance, in @marson2005 the authors distinguish between UK and non-UK centres. However we do not have any information linking the number of a centre to its location. However we now inlcude the counts of every type of seizure, and the results of all tests, as possible covariates. 
 
 We still omit date variables. we found that the error rate didn't really decrease by creating more than 100-200 trees, so we use `ntree = 200`. There is not a universal threshold on the `vimp` above which variables should be considered selected, but in the literature `vimp=0.02` has been suggested as a rule-of-thumb.
 ```{r, cache=TRUE, out.width="70%"}
