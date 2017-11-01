@@ -214,7 +214,7 @@ First we fit a naive proportional hazards model with the covariates of interest.
 
 ```{r}
 mycox <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz + period, data=mess)
-kable(summary(mycox)$coefficients[,c(1,2,5)], digits = 3)
+kable(cbind(summary(mycox)$coefficients[,c(1,2,5)],print(cox.zph(mycox))[-nrow(print(cox.zph(mycox))),3]), digits = 3, col.names=c("coef","exp(coef)","p.coef","p.PH"))
 ```
 
 Next we assess whether proportional hazards is a suitable assumption for these data. We see from the residual plots that the treatment seems to have a decreasing effect over time, but the residuals of the other covariates don't seem to vary over time. This is confirmed by the small p-value for `trt` in the test of the proportional hazards assumption. The treatment effect decreasing over time is indicative that a proportional hazards model is not suitable, but we will try a few fixes before abandoning the Cox model completely.
@@ -229,7 +229,7 @@ Next we try adding into the model an interaction term of treatment with time, to
 
 ```{r}
 mycox2 <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz + period + trt:intseiz1, data=mess)
-kable(summary(mycox2)$coefficients[,c(1,2,5)], digits = 3)
+kable(cbind(summary(mycox2)$coefficients[,c(1,2,5)],print(cox.zph(mycox2))[-nrow(print(cox.zph(mycox2))),3]), digits = 3, col.names=c("coef","exp(coef)","p.coef","p.PH"))
 #cox.zph(mycox2)
 ```
 
@@ -237,7 +237,7 @@ Next we fit the model using the transformed versions of `period` and `nseiz`. Th
 
 ```{r}
 mycox3 <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz.tr + period.tr, data=mess)
-kable(summary(mycox3)$coefficients[,c(1,2,5)], digits = 3)
+kable(cbind(summary(mycox3)$coefficients[,c(1,2,5)],print(cox.zph(mycox3))[-nrow(print(cox.zph(mycox3))),3]), digits = 3, col.names=c("coef","exp(coef)","p.coef","p.PH"))
 #cox.zph(mycox3)
 ```
 
@@ -245,7 +245,7 @@ Finally, in the next model we include an interaction term between `trt` and `nse
 
 ```{r}
 mycox4 <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz.tr + period.tr + trt:nseiz.tr, data=mess)
-kable(summary(mycox4)$coefficients[,c(1,2,5)], digits = 3)
+kable(cbind(summary(mycox4)$coefficients[,c(1,2,5)],print(cox.zph(mycox4))[-nrow(print(cox.zph(mycox4))),3]), digits = 3, col.names=c("coef","exp(coef)","p.coef","p.PH"))
 #cox.zph(mycox4)
 ```
 
