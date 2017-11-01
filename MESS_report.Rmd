@@ -212,24 +212,19 @@ where $X$ is the matrix of covariates and $\beta$ is the vector of coefficients 
 
 First we fit a naive proportional hazards model with the covariates of interest. We see that the treatment `trt` is significant, as is the number `nseiz` of seizures prior to entering the study. This is to be expected since subjects with a tendency for more frequent seizures are likely to go less time before the first post-randomisation seizure regardless of treatment. The elapsed time `period` between the subject's first seizure and their entry into the trial is slightly significant, which is also unsurprising.
 
-```{r}
+Next we assess whether proportional hazards is a suitable assumption for these data. We see from the residual plots that the treatment seems to have a decreasing effect over time and the residuals have mean consistently greater than zero. The residuals of the other covariates don't seem to vary over time. This is confirmed by the small p-value for `trt` in the test of the proportional hazards assumption. The treatment effect decreasing over time is indicative that a proportional hazards model is not suitable, but we will try a few fixes before abandoning the Cox model completely.
+
+```{r, out.width="70%"}
 mycox <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz + period, data=mess)
-kable(summary(mycox)$coefficients[,c(1,2,5)], digits = 3)
-```
-
-Next we assess whether proportional hazards is a suitable assumption for these data. We see from the residual plots that the treatment seems to have a decreasing effect over time, but the residuals of the other covariates don't seem to vary over time. This is confirmed by the small p-value for `trt` in the test of the proportional hazards assumption. The treatment effect decreasing over time is indicative that a proportional hazards model is not suitable, but we will try a few fixes before abandoning the Cox model completely.
-
-```{r}
-#cox.zph(mycox)
-#par(mfrow=c(3,2))
-#plot(cox.zph(mycox))
+kable(cbind(summary(mycox)$coefficients[,c(1,2,5)],print(cox.zph(mycox))[-nrow(print(cox.zph(mycox))),3]), digits = 3, col.names=c("coef","exp(coef)","p.coef","p.PH"))
+plot(cox.zph(mycox)[1,])
 ```
 
 Next we try adding into the model an interaction term of treatment with time, to correct for the problem with the first model. We see, as expected, that the interaction term is very significant. However the proportional hazards model is still rejected.
 
 ```{r}
 mycox2 <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz + period + trt:intseiz1, data=mess)
-kable(summary(mycox2)$coefficients[,c(1,2,5)], digits = 3)
+kable(cbind(summary(mycox2)$coefficients[,c(1,2,5)],print(cox.zph(mycox2))[-nrow(print(cox.zph(mycox2))),3]), digits = 3, col.names=c("coef","exp(coef)","p.coef","p.PH"))
 #cox.zph(mycox2)
 ```
 
@@ -237,7 +232,7 @@ Next we fit the model using the transformed versions of `period` and `nseiz`. Th
 
 ```{r}
 mycox3 <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz.tr + period.tr, data=mess)
-kable(summary(mycox3)$coefficients[,c(1,2,5)], digits = 3)
+kable(cbind(summary(mycox3)$coefficients[,c(1,2,5)],print(cox.zph(mycox3))[-nrow(print(cox.zph(mycox3))),3]), digits = 3, col.names=c("coef","exp(coef)","p.coef","p.PH"))
 #cox.zph(mycox3)
 ```
 
@@ -245,7 +240,7 @@ Finally, in the next model we include an interaction term between `trt` and `nse
 
 ```{r}
 mycox4 <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz.tr + period.tr + trt:nseiz.tr, data=mess)
-kable(summary(mycox4)$coefficients[,c(1,2,5)], digits = 3)
+kable(cbind(summary(mycox4)$coefficients[,c(1,2,5)],print(cox.zph(mycox4))[-nrow(print(cox.zph(mycox4))),3]), digits = 3, col.names=c("coef","exp(coef)","p.coef","p.PH"))
 #cox.zph(mycox4)
 ```
 
@@ -353,13 +348,13 @@ covars <- transmute(mess, ager, sex, trt, nsp, ncp, nps, nmyo, nab, naab, ntc, n
 # a4<-survreg(surv1 ~ . + trt:nseiz.tr , covars, dist="loglogistic")
 # which.min(c(AIC(a1),AIC(a2),AIC(a3),AIC(a4)))
 
-modpar.logn <- survreg(surv1 ~ . + trt:nseiz.tr , covars, dist="lognormal") 
-kable(summary(modpar.logn)$table, digits = 3)
+modpar.logn <- survreg(surv1 ~ . + trt:nseiz.tr , covars, dist="lognormal")
+modpar.signif <- summary(modpar.logn)$table[,4]<=0.05
+kable(summary(modpar.logn)$table[modpar.signif,], digits = 3)
 ```
 
-We point out that many of the variables included in the model (especially those referring to an EEG abnormality) seems to be not significant. 
 
-SOMETHING TO LINK THIS PARAGRAPH AND THE NEXT ONE.
+We point out that many of the variables included in the model (especially those referring to an EEG abnormality) seems to be not significant. For comprehensibility we display only the significant covariates here. 
 
 ```{r, include=FALSE}
 ## Survival Lasso
@@ -440,16 +435,15 @@ PREDICTION FOR SOME SUBJECTS.
 
 # Further research
 
-SCALE PARAMETER DEPENDING ON TREATMENT
+We could extend the log-normal model to include a scale parameter dependent on the treatment, in order to capture any difference in scale between the immediate and deferred treatment groups.
 
-LOGISTIC AFTER 6 MONTHS, 1 YEAR...
+We have not considered the `centre` variable in our models. A good way to include the variation by centre might be to use a frailty model to allow for a random centre effect.
 
-FRAILTY MODELS (and consider centre effect)
+We have considered as our outcome the time to first seizure post-randomisation. The dataset also contains information about the time to second and fifth seizure, and the time to the first tonic-clonic seizure. Additionally investigating these outcomes could enrich the results and establish the longevity of the treatment effect.
 
-TONIC CLONIC SEIZURES, 2ND AND 5TH SEIZURES...
+Alternatively, working with the first seizure outcome, we could transform the outcome to an indicator "seizure free for first six months Y/N" or similar, and fit a logistic model. This outcome is of interest because it determines whether or not a patient is allowed to drive again.
 
-
-JANE'S MODEL
+Another way to look at the data is to consider each patient as having their own unobserved seizure rate $\lambda_i$ pre-randomisation, and consider the treatment effect in terms of how this compares to their post-treatment seizure rate, say $\gamma_i$. This is quite different to the standard medical statistics approaches we have used, but makes sense from a modelling perspective. REFERENCE
 
 
 ## References
