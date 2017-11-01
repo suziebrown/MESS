@@ -160,6 +160,7 @@ covars1 <- transmute(mess, ager, sex, trt, ntc, nseiz.tr, period.tr, eeg, abeeg)
 # Check balance of randomisation
 
 We check that the randomisation is balanced over sex and age. There is a noticeable deviation from an even split in some categories, but the deviation is not systematic and the overall sample size is large so it should not make a big difference to our results.
+
 ```{r, out.width="70%"}
 t.sex <- table(mess$sex,mess$trt)
 colnames(t.sex)<-c('immediate','deferred')
@@ -179,6 +180,7 @@ plot(t.age, main="randomisation by age", ylab="treatment", xlab='')
 # Exploratory Kaplan-Meier curves
 
 We plot Kaplan-Meier curves of the first seizure after randomisation, grouped by treatment and sex. The first plot shows that the survival probability for those who received a deferred treatment is lower than for those immediately treated, at least for the first 5 years after the randomisation. From the second plot it seems that sex does not have a significant effect on the survival probability.
+
 ```{r}
 surv1 <- with(mess, Surv(intseiz1, indseiz1 == 1))
 mfit <- survfit(surv1 ~ 1, conf.type = "log-log", data = mess)
@@ -214,13 +216,13 @@ First we fit a naive proportional hazards model with the covariates of interest.
 
 Next we assess whether proportional hazards is a suitable assumption for these data. We see from the residual plots that the treatment seems to have a decreasing effect over time and the residuals have mean consistently greater than zero. The residuals of the other covariates don't seem to vary over time. This is confirmed by the small p-value for `trt` in the test of the proportional hazards assumption. The treatment effect decreasing over time is indicative that a proportional hazards model is not suitable, but we will try a few fixes before abandoning the Cox model completely.
 
-```{r, out.width="70%", results="hide"}
+Next we try adding into the model an interaction term of treatment with time, to correct for the problem with the first model. We see, as expected, that the interaction term is very significant. However the proportional hazards model is still rejected.
+
+```{r, echo = F, eval = F, out.width="70%", results="hide"}
 mycox <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz + period, data=mess)
 kable(cbind(summary(mycox)$coefficients[,c(1,2,5)],print(cox.zph(mycox))[-nrow(print(cox.zph(mycox))),3]), digits = 3, col.names=c("coef","exp(coef)","p.coef","p.PH"))
 plot(cox.zph(mycox)[1,])
 ```
-
-Next we try adding into the model an interaction term of treatment with time, to correct for the problem with the first model. We see, as expected, that the interaction term is very significant. However the proportional hazards model is still rejected.
 
 ```{r, results="hide"}
 mycox2 <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz + period + trt:intseiz1, data=mess)
@@ -228,11 +230,12 @@ kable(cbind(summary(mycox2)$coefficients[,c(1,2,5)],print(cox.zph(mycox2))[-nrow
 #cox.zph(mycox2)
 ```
 
-Next we fit the model using the transformed versions of `period` and `nseiz`. The significant covariates are largely the same as in the first model, however the assumption of proportional hazards is not supported in the `trt` and `nseiz` terms.
+Next we fit the model using the transformed versions of `period` and `nseiz`. The significant covariates are largely the same as in the first model, however the assumption of proportional hazards is not supported in the `trt` and `nseiz` terms. The plot below gives the intuition about the non validity of the proportional hazards: indeed, the mean line of these points (that are a particular type of residuals obtained from Cox model) is significantly different from the zero line (that corresponds to the case in which this hypothesis holds). 
 
-```{r}
+```{r, out.width="70%"}
 mycox3 <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz.tr + period.tr, data=mess)
 kable(cbind(summary(mycox3)$coefficients[,c(1,2,5)],cox.zph(mycox3)$table[- nrow(cox.zph(mycox3)$table),3]), digits = 3, col.names=c("coef","exp(coef)","p.coef","p.PH"))
+plot(cox.zph(mycox3)[1,], xlab = "Time (in days)")
 #cox.zph(mycox3)
 ```
 
@@ -247,10 +250,13 @@ kable(cbind(summary(mycox4)$coefficients[,c(1,2,5)],cox.zph(mycox4)$table[- nrow
 
 # Aalen's additive model
 
-The proportional hazards assumption underlying Cox model might be in many cases too strict and lead to unrealistic conclusions. Moreover, it is not uncommon to consider that the effect of one or more covariates might change over time. In these cases the model proposed by @aalen1989linear provides a flexible way to tackle these issues. Unlike Cox model, in Aalen's model the effect of the covariate on the hazard function at time t is additive. In other words, the hazard function at time t is a linear function of the covariates. Each coefficient is a function allowed to vary over time; in this sense, the model is fully nonparametric. At time t, the value of the coefficient function is to be read as the variation with respect to the baseline hazard function induced by a change of one unit (level in case of categorical variables) in the covariates. 
+The proportional hazards assumption underlying Cox model might be in many cases too strict and lead to unrealistic conclusions. Moreover, it is not uncommon to consider that the effect of one or more covariates might change over time. In these cases the model proposed by @aalen1989linear provides a flexible way to tackle these issues. Unlike Cox model, in Aalen's model the effect of the covariate on the hazard function at time t is additive. In other words, the hazard function at time t is a linear function of the covariates:
+$$h(t,x,\mathbb{\beta(t)}) =  \beta_0(t)+  \beta_1(t)x_1+...+ \beta_p(t)x_p.$$
+
+Each coefficient is a function allowed to vary over time; in this sense, the model is fully nonparametric. At time t, the value of the coefficient function is to be read as the variation with respect to the baseline hazard function induced by a change of one unit (level in case of categorical variables) in the covariates. 
 
 Aalen's additive model is widely used because of the easiness in the interpretation of the graphical results, that report the cumulative regression coefficient over time with 95% confidence bands. The slope of the cumulative coefficient function gives indeed some information about the effect of a variable on the outcome of interest.<!-- When the effect of the covariate is constant over time (like in Cox model), the cumulative regression coefficient will look like a straight line; on the contrary, if the effect becomes null only after a certain time point, the slope of the cumulative regression coefficient will decrease towards zero. When the covariate does not play a role in explaining the variability in the hazard function, the value 0 will be included in the confidence bands for all the time interval. -->
-For what concerns the effect of deferring the treatment, the cumulative coefficient increases in the first two years approximately after randomisation, then remains flat: this suggests that the hazard ratio is fairly stable until that breakpoint and then it gets closer to 1. In other words, after two years having received the treatment immediately or not has no effect on the time to the next seizure. A similar conclusion can be drawn on the number of seizures pre-randomisation. In addition, the time from the last seizure .... .......... has not a significant effect after approximately 2 years, while the effect of an abnormal EEG is quite constant over time
+For what concerns the effect of deferring the treatment, the cumulative coefficient increases in the first two years approximately after randomisation, then remains flat: this suggests that the hazard ratio is fairly stable until that breakpoint and then it gets closer to 1. In other words, after two years having received the treatment immediately or not has no effect on the time to the next seizure. A similar conclusion can be drawn on the number of seizures pre-randomisation. In addition, the time between the last seizure and the randomisation date has not a significant effect after approximately 2 years, while the effect of an abnormal EEG is quite constant over time
 
 ```{r}
 modaalen<-aalen(surv1 ~ trt + const(ager) + const(sex) + const(nseiz) + const(period) + const(abeeg), data = mess , n.sim=100)
@@ -278,12 +284,11 @@ if(i %in% c(4,5)) mtext("Pre-randomisation",cex = 0.75, line = 0.5)
 An alternative to the Cox model is to consider a parametric specification for the distribution of survival times. In particular, the class of accelerated failure time (AFT) models provides the natural extension in case the proportional hazard assumption does not work. Following the introduction provided by @hosmer2008applied, it is possible to write the distribution of the time to event for the $i$-th subject as 
 $$\log(t_i)=\mu+\beta^T x_i+\sigma \epsilon_i $$
 
- where $\sigma$ is a scale parameter and $\epsilon_i$ is an error term with a prespecified distribution (its choice determines the type of model). <!--Common choices for the regression models are exponential, Weibull, lognormal (when the distribution of $\epsilon$ and therefore the distribution of $ln(t)$ is normal) and loglogistic: this choice will affect the shape of the hazard function, that may be monotonic or having a maximum dependent on the scale parameter.   --> The effects in this model are multiplicative on the time scale: in other words, the time to the event depends on the exponential of the linear combination of the covariates weighted by the coefficients. The name “accelerated failure time” arises from the fact that given
+where $\sigma$ is a scale parameter and $\epsilon_i$ is an error term with a prespecified distribution (its choice determines the type of model). <!--Common choices for the regression models are exponential, Weibull, lognormal (when the distribution of $\epsilon$ and therefore the distribution of $ln(t)$ is normal) and loglogistic: this choice will affect the shape of the hazard function, that may be monotonic or having a maximum dependent on the scale parameter.   --> The effects in this model are multiplicative on the time scale: in other words, the time to the event depends on the exponential of the linear combination of the covariates weighted by the coefficients. The name “accelerated failure time” arises from the fact that given
 $$ t_i=\exp{[\beta^Tx_i]}\exp{[\sigma\epsilon_i]} $$
 the effect of the covariates is to “accelerate” or decelerate the time to the event of interest with respect to a subject with baseline characteristics (i.e., the one for which all the covariates assume value zero). This means that if for a given variable the coefficient is positive, the time to the event will increase, hence the effect of the covariate will be protective. Therefore, the sign of the coefficient has to be read in opposite way with respect to the proportional hazards models.
 
 In this report we proposed 4 parametric regression models: exponential, Weibull, lognormal (where $\epsilon$ and therefore $ln(t)$ are normally distributed) and loglogistic. The same set of covariates has been used for all of them: namely, `trt`, `sex`, `age`, `nseiz.tr`,`period.tr`, `abeeg`. The selection of the most suitable parametric form is done on the basis of the lowest AIC, that is reached by the lognormal model among the accelerated failure time (AFT) ones considered.
-
 
 ```{r, results='hide'}
 # modpar1 <- survreg(surv1 ~ trt + ager + sex + nseiz + period + abeeg, mess, dist="exponential")
@@ -375,6 +380,7 @@ We would like to ensure that the set of covariates we include in the model is re
 Again we omit the `centre` variable since it destabilises the model, having a large number of levels many of which correspond to only one observation. If we had some additonal information say about suitably groupings of centres it would be sensible to include it. For instance, in @marson2005 the authors distinguish between UK and non-UK centres. However we do not have any information linking the number of a centre to its location. However we now include the counts of every type of seizure, and the results of all tests, as possible covariates. 
 
 We still omit date variables. we found that the error rate didn't really decrease by creating more than 100-200 trees, so we use `ntree = 200`. There is not a universal threshold on the `vimp` above which variables should be considered selected, but in the literature `vimp=0.002` has been suggested as a rule-of-thumb.
+
 ```{r, cache=TRUE, out.width="60%"}
 rsf.surv1<-rfsrc(Surv(intseiz1, indseiz1, type="right") ~ ager + sex + trt + nsp + ncp + nps + nmyo + nab + naab + ntc + noth + nseiz.tr + period.tr + eeg + abeeg + nsab + gparsp + gparnsp + fparsp + fparnsp + swab, data=mess, ntree = 200, importance=TRUE,  tree.err = T)
 
@@ -418,7 +424,7 @@ axis(side=1, at=n.years,labels = 2*0:(length(n.years) - 1))
 legend("topright", legend = c("Kaplan - Meier", "Lognormal"), col = c(1,2), lty = c(1,1))
 ```
 
-# Prediction
+The parametric model gives an easy way to predict the survival probability of a subject with given characteristics. For the plots below, we considered the effect of the treatment for subject with 1 or more than 1 seizures, keeping constant the values for the other variables. The immediate treatment shows a significant beneficial effect especially for those subject presenting more than 1 seizures before randomisation.
 
 ```{r}
 par(mrow=c(1,2))
@@ -433,12 +439,10 @@ mypred2 <- predict(modpar.lognFINAL, newdata=mydf2, terms=c("trt"), type="quanti
 dat1<-cbind(mypred1$fit, mypred1$fit - 2*mypred1$se.fit, mypred1$fit + 2*mypred1$se.fit)/365.25
 dat2<-cbind(mypred2$fit, mypred2$fit - 2*mypred2$se.fit, mypred2$fit + 2*mypred2$se.fit)/365.25
 
-matplot(dat1, 1-percs, type="l", main="Predictive curves for subject with 1 seziure",xlim = c(0,10), xlab="time (years)", ylab="survival probability", lty=c(1,3,3), lwd=2, col="red", cex=0.8)
+matplot(dat1, 1-percs, type="l", main="Predictive curves for subject with 1 seizure",xlim = c(0,10), xlab="time (years)", ylab="survival probability", lty=c(1,3,3), lwd=2, col="red", cex=0.8)
 matlines(dat2, 1-percs, lty=c(1,3,3), lwd=2, col="blue")
 
 legend("topright",c("immediate","deferred"),lwd=2, col=c("red","blue"))
-
-##~~~
 
 mydf1 <- list(trt=factor(0), nseiz.tr=TRUE, abeeg=factor(0), ncp=0, nsp=0, nmyo=0)
 mypred1 <- predict(modpar.lognFINAL, newdata=mydf1, terms=c("trt"), type="quantile", p=percs, se=TRUE)
@@ -457,7 +461,7 @@ legend("topright",c("immediate","deferred"),lwd=2, col=c("red","blue"))
 
 # Further research
 
-The parametric model considered seems to be a good choice for the data at hand. Nevertheless, there are some .... in the first years that may indicate the need for introducing a frailty term that takes into account the variability between subject. Another potential source of variability not addressed in the model is the `centre` variable that may account for some correlation 
+The parametric model considered seems to be a good choice for the data at hand. Nevertheless, there are some differences between the curves in the first years that may indicate the need for introducing a frailty term that takes into account the variability between subject. Another potential source of variability not addressed in the model is the `centre` variable that may account for some correlation 
 <!-- (for example due to their geographical location)  -->
 between subjects. Even in this case we might consider to include it as a random effect.
 
