@@ -404,18 +404,18 @@ kable(as.data.frame(summary.final), digits = 3)
 
 Having a deferred treatment increases the hazard of a new seizure by around 68%; the hazard for a subject with more than a seizure pre-randomisation is approximately double than the one for those with only a seizure, *ceteris paribus*. At a 0.05 significance level, the interaction between the two variables is not significant therefore we can remove this effect. The other variable that induces a relevant change in the hazards is the presence of an abnormal EEG, while the other variables concerning the type of seizures pre-randomisation give a hazard ratio close to 1 but significant. 
 
-In this model we assumed that only the location parameter of the lognormal distribution depends on the covariate and we estimated the scale parameter, that is equal to `r modpar.lognFINAL$scale` (we tried to estimate the scale as a function of the treatment, but it turned out to be not significant). The hazard function for this model is non monotonic: it increases up to a maximum value (that depends on the scale parameter - in this case it will be very close to 0 because of the magnitude of this parameter) then decreases as time passes. The fit of our model is assessed graphically via plotting the survival function estimated with our model compared (and the corresponding 95% confidence bands) to the Kaplan-Meier estimates. 
+In this model we assumed that only the location parameter of the lognormal distribution depends on the covariate and we estimated the scale parameter, that is equal to `r modpar.lognFINAL$scale` (we tried to estimate the scale as a function of the treatment, but it turned out to be not significant). The hazard function for this model is non monotonic: it increases up to a maximum value (that depends on the scale parameter - in this case it will be very close to 0 because of the magnitude of this parameter) then decreases as time passes. The fit of our model is assessed graphically by comparing the survival function and hazard function estimated with our model (and the corresponding 95% confidence bands) to the Kaplan-Meier estimates. 
 
 ```{r}
 #x<-seq(0,max(mess$intseiz1),length.out = 1000)
 #plot(x,dlnorm(x, meanlog = exp(modpar.lognFINAL$coefficients) , sdlog = modpar.lognFINAL$scale, log = T))
 par(mfrow = c(1,2))
-plot(flexsurvreg(surv1 ~  trt + nseiz.tr + abeeg + ncp + nsp + nmyo + period.tr + trt:nseiz.tr , data = covars, dist="lognormal"), type = "survival", ci = T, xlab = "Time (in years)", ylab = "Survival probability", xscale = 365.25)
-legend("topright", c('','name'), legend = c("Kaplan - Meier", "Lognormal"), col = c(1,2), lty = c(1,1))
+plot(flexsurvreg(surv1 ~  trt + nseiz.tr + abeeg + ncp + nsp + nmyo + period.tr + trt:nseiz.tr, data = covars, dist="lognormal"), type = "survival", ci = T, xlab = "Time (in years)", ylab = "Survival probability", xscale = 365.25)
+legend("topright", legend = c("Kaplan - Meier", "Lognormal"), col = c(1,2), lty = c(1,1))
 plot(flexsurvreg(surv1 ~  trt + nseiz.tr + abeeg + ncp + nsp + nmyo + period.tr + trt:nseiz.tr , data = covars, dist="lognormal"), type = "hazard", ci = T, xlab = "Time (in years)", xaxt = 'n')
 n.years <- seq(0, max(mess$intseiz1), by=2*365.25)
 axis(side=1, at=n.years,labels = 2*0:(length(n.years) - 1))
-legend("topright", c('','name'), legend = c("Kaplan - Meier", "Lognormal"), col = c(1,2), lty = c(1,1))
+legend("topright", legend = c("Kaplan - Meier", "Lognormal"), col = c(1,2), lty = c(1,1))
 ```
 
 # Prediction
