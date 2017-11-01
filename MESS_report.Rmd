@@ -358,6 +358,7 @@ kable(summary(modpar.logn)$table, digits = 3)
 ```
 
 We point out that many of the variables included in the model (especially those referring to an EEG abnormality) seems to be not significant. 
+
 SOMETHING TO LINK THIS PARAGRAPH AND THE NEXT ONE.
 
 ```{r, include=FALSE}
@@ -400,13 +401,16 @@ For the purposes of our model, we will include only the covariates which the par
 
 # Final model
 
-Given a parametric specification for the model and a restricted set of covariates, we can fit the final model for the data at hand. PARSIMONIOUS MODEL
+Given a parametric specification for the model and a restricted set of covariates, we can fit the final model for the data at hand. We are interested in checking also the significance of the interaction term between the treatment and the number of seizures pre-randomisation. The fundamental advantages of such model are the parsimony and the fact that, thanks to the full parametric representation, we can easily predict the survival function for a subject given its characteristics. To make the interpretation simpler and consistent with what observed before, we report also the hazard ratio for each coefficient $\beta$, that can be shown to correspond to $HR = \exp{[-\beta]}$.
 
-WHAT ABOUT PERIOD.TR?
 ```{r}
-modpar.lognFINAL <- survreg(surv1 ~  trt + nseiz.tr + abeeg + ncp + nsp + nmyo + trt:nseiz.tr + period.tr , covars, dist="lognormal") 
-kable(summary(modpar.lognFINAL)$table, digits = 3)
+modpar.lognFINAL <- survreg(surv1 ~  trt + nseiz.tr + abeeg + ncp + nsp + nmyo + trt:nseiz.tr , covars, dist="lognormal") 
+summary.final <- round(cbind(Coefficient = summary(modpar.lognFINAL)$table[,1], HR = round(exp(- summary(modpar.lognFINAL)$table[,1]),3), summary(modpar.lognFINAL)$table[,-1]),3)
+summary.final[c(1,9),2] = " "
+kable(as.data.frame(summary.final), digits = 3)
 ```
+
+Having a deferred treatment increases the hazard of a new seizure by around 68%; the hazard for a subject with more than a seizure pre-randomisation is approximately double than the one for those with only a seizure, *ceteris paribus*. At a 0.05 significance level, the interaction between the two variables is not significant. The other variable that induces a relevant change in the hazards is the presence of an abnormal EEG, while the other variables concerning the type of seizures pre-randomisation give a hazard ratio close to 1 but still significant. 
 
 SCALE PARAMETER LARGER THAN 1
 
