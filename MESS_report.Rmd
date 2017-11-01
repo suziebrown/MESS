@@ -212,17 +212,12 @@ where $X$ is the matrix of covariates and $\beta$ is the vector of coefficients 
 
 First we fit a naive proportional hazards model with the covariates of interest. We see that the treatment `trt` is significant, as is the number `nseiz` of seizures prior to entering the study. This is to be expected since subjects with a tendency for more frequent seizures are likely to go less time before the first post-randomisation seizure regardless of treatment. The elapsed time `period` between the subject's first seizure and their entry into the trial is slightly significant, which is also unsurprising.
 
-```{r}
+Next we assess whether proportional hazards is a suitable assumption for these data. We see from the residual plots that the treatment seems to have a decreasing effect over time and the residuals have mean consistently greater than zero. The residuals of the other covariates don't seem to vary over time. This is confirmed by the small p-value for `trt` in the test of the proportional hazards assumption. The treatment effect decreasing over time is indicative that a proportional hazards model is not suitable, but we will try a few fixes before abandoning the Cox model completely.
+
+```{r, out.width="70%"}
 mycox <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz + period, data=mess)
 kable(cbind(summary(mycox)$coefficients[,c(1,2,5)],print(cox.zph(mycox))[-nrow(print(cox.zph(mycox))),3]), digits = 3, col.names=c("coef","exp(coef)","p.coef","p.PH"))
-```
-
-Next we assess whether proportional hazards is a suitable assumption for these data. We see from the residual plots that the treatment seems to have a decreasing effect over time, but the residuals of the other covariates don't seem to vary over time. This is confirmed by the small p-value for `trt` in the test of the proportional hazards assumption. The treatment effect decreasing over time is indicative that a proportional hazards model is not suitable, but we will try a few fixes before abandoning the Cox model completely.
-
-```{r}
-#cox.zph(mycox)
-#par(mfrow=c(3,2))
-#plot(cox.zph(mycox))
+plot(cox.zph(mycox)[1,])
 ```
 
 Next we try adding into the model an interaction term of treatment with time, to correct for the problem with the first model. We see, as expected, that the interaction term is very significant. However the proportional hazards model is still rejected.
