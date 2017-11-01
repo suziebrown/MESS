@@ -353,7 +353,7 @@ modpar.signif <- summary(modpar.logn)$table[,4]<=0.05
 kable(summary(modpar.logn)$table[modpar.signif,], digits = 3)
 ```
 
-We point out that many of the variables included in the model (especially those referring to an EEG abnormality) seems to be not significant. 
+We point out that many of the variables included in the model (especially those referring to an EEG abnormality) seems to be not significant. For comprehensibility we display only the significant covariates here. 
 SOMETHING TO LINK THIS PARAGRAPH AND THE NEXT ONE.
 
 ```{r, include=FALSE}
@@ -432,16 +432,15 @@ PREDICTION FOR SOME SUBJECTS.
 
 # Further research
 
-SCALE PARAMETER DEPENDING ON TREATMENT
+We could extend the log-normal model to include a scale parameter dependent on the treatment, in order to capture any difference in scale between the immediate and deferred treatment groups.
 
-LOGISTIC AFTER 6 MONTHS, 1 YEAR...
+We have not considered the `centre` variable in our models. A good way to include the variation by centre might be to use a frailty model to allow for a random centre effect.
 
-FRAILTY MODELS (and consider centre effect)
+We have considered as our outcome the time to first seizure post-randomisation. The dataset also contains information about the time to second and fifth seizure, and the time to the first tonic-clonic seizure. Additionally investigating these outcomes could enrich the results and establish the longevity of the treatment effect.
 
-TONIC CLONIC SEIZURES, 2ND AND 5TH SEIZURES...
+Alternatively, working with the first seizure outcome, we could transform the outcome to an indicator "seizure free for first six months Y/N" or similar, and fit a logistic model. This outcome is of interest because it determines whether or not a patient is allowed to drive again.
 
-
-JANE'S MODEL
+Another way to look at the data is to consider each patient as having their own unobserved seizure rate $\lambda_i$ pre-randomisation, and consider the treatment effect in terms of how this compares to their post-treatment seizure rate, say $\gamma_i$. This is quite different to the standard medical statistics approaches we have used, but makes sense from a modelling perspective. REFERENCE
 
 
 ## References
