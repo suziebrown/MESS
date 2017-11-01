@@ -38,13 +38,15 @@ mess <- read.csv("MESSdat.csv", sep="\t", header=T)
 
 ### Change data types
 
-Treatment 0/1 and sex 0/1 have been stored as numeric; we change the data type to factor.
+We first format as factors those variables that should be factors, format the dates as dates, and change the 1/2-coded binary variables to 0/1.
 ```{r}
+#Treatment 0/1 and sex 0/1 have been stored as numeric; we change the data type to factor.
 mess$trt<-as.factor(mess$trt)
 mess$sex<-as.factor(mess$sex)
 ```
-We see that there are many NAs in the columns relating to dates, but this is not shown on the summary because they are formatted as character. We format the dates as dates.
+
 ```{r}
+#We see that there are many NAs in the columns relating to dates, but this is not shown on the summary because they are formatted as character. We format the dates as dates.
 mess$d1sp<-as.Date(mess$d1sp,"%d/%m/%y")
 mess$d1cp<-as.Date(mess$d1cp,"%d/%m/%y")
 mess$d1ps<-as.Date(mess$d1ps,"%d/%m/%y")
@@ -56,14 +58,16 @@ mess$d1oth<-as.Date(mess$d1oth,"%d/%m/%y")
 mess$d1seiz<-as.Date(mess$d1seiz,"%d/%m/%y")
 mess$rand<-as.Date(mess$rand,"%d/%m/%y")
 ```
-We assume the `centre` variable must be an identifying number for the clinic where the subject entered the trial. As such, we format it as a factor.
+
 ```{r, results='hide'}
+#We assume the `centre` variable must be an identifying number for the clinic where the subject entered the trial. As such, we format it as a factor.
 table(mess$centre)
 mess$centre <- as.factor(mess$centre)
 # maybe include in the model, by grouping them together? but it's a bit arbitrary - would be nice to know if the numbers are related to geographical location.
 ```
-We find that the binary results for the various medical tests have been stored as 1/2 = yes/no. We convert these to 0/1 = no/yes.
+
 ```{r}
+#We find that the binary results for the various medical tests have been stored as 1/2 = yes/no. We convert these to 0/1 = no/yes.
 # as.logical ?
 mess$eeg <- as.factor(ifelse(mess$eeg==2,0,mess$eeg))
 mess$abeeg <- as.factor(ifelse(mess$abeeg==2,0,mess$abeeg))
@@ -184,11 +188,11 @@ mfit <- survfit(surv1 ~ 1, conf.type = "log-log", data = mess)
 par(mfrow=c(1,2))
 n.years <- seq(365.25, max(mess$intseiz1), by=365.25)
 mfit.trt <- survfit(surv1 ~ trt,  data = mess)  #conf.type = "log-log",
-plot(mfit.trt, conf.int = T, mark.time=F, col =  2:3, xlab = "Years since randomisation", ylab = "Survival probability" ,xscale = 365.25)#,xaxt = 'n')
+plot(mfit.trt, conf.int = T, mark.time=F, col =  2:3, xlab = "Years since randomisation", ylab = "Survival probability" ,xscale = 365.25, cex=0.8)#,xaxt = 'n')
 #axis(side=1, at=n.years,labels = 1:length(n.years))
 legend("topright", legend = c("Immediate","Deferred"), col = 2:3, lty=1)
 mfit.sex <- survfit(surv1 ~ sex, conf.type = "log-log", data = mess)
-plot(mfit.sex, conf.int = T, mark.time=F, col = c("orange","brown"), xlab = "Years since randomisation",ylab = "Survival probability",xscale = 365.25)#,xaxt = 'n')
+plot(mfit.sex, conf.int = T, mark.time=F, col = c("orange","brown"), xlab = "Years since randomisation",ylab = "Survival probability",xscale = 365.25, cex=0.8)#,xaxt = 'n')
 #axis(side=1, at=n.years,labels = 1:length(n.years))
 legend("topright", legend = c("Male","Female"), col = c("orange","brown"), lty=1)
 
