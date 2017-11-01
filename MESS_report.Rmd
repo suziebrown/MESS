@@ -404,7 +404,7 @@ kable(as.data.frame(summary.final), digits = 3)
 
 Having a deferred treatment increases the hazard of a new seizure by around 68%; the hazard for a subject with more than a seizure pre-randomisation is approximately double than the one for those with only a seizure, *ceteris paribus*. At a 0.05 significance level, the interaction between the two variables is not significant therefore we can remove this effect. The other variable that induces a relevant change in the hazards is the presence of an abnormal EEG, while the other variables concerning the type of seizures pre-randomisation give a hazard ratio close to 1 but significant. 
 
-In this model we assumed that only the location parameter of the lognormal distribution depends on the covariate and we estimated the scale parameter, that is equal to `r modpar.lognFINAL$scale` (we tried to estimate the scale as a function of the treatment, but it turned out to be not significant). The hazard function for this model is non monotonic: it increases up to a maximum value (that depends on the scale parameter - in this case it will be very close to 0 because of the magnitude of this parameter) then decreases as time passes. The fit of our model is assessed graphically by comparing the survival function and hazard function estimated with our model (and the corresponding 95% confidence bands) to the Kaplan-Meier estimates. 
+In this model we assumed that only the location parameter of the lognormal distribution depends on the covariate and we estimated the scale parameter, that is equal to `r modpar.lognFINAL$scale` (we tried to estimate the scale as a function of the treatment, but it turned out to be not significant). The hazard function for this model is non monotonic: it increases up to a maximum value (that depends on the scale parameter - in this case it will be very close to 0 because of the magnitude of this parameter) then decreases as time passes. The fit of our model is assessed graphically by comparing the survival function and hazard function estimated with our model (and the corresponding 95% confidence bands) to the Kaplan-Meier estimates. The two plots indicates that the lognormal model captures the main behaviour of the observed curves after 2 years, but it overestimates the survival probability prior to that time point.
 
 ```{r}
 #x<-seq(0,max(mess$intseiz1),length.out = 1000)
@@ -457,7 +457,9 @@ legend("topright",c("immediate","deferred"),lwd=2, col=c("red","blue"))
 
 # Further research
 
-We have not considered the `centre` variable in our models. A good way to include the variation by centre might be to use a frailty model to allow for a random centre effect.
+The parametric model considered seems to be a good choice for the data at hand. Nevertheless, there are some .... in the first years that may indicate the need for introducing a frailty term that takes into account the variability between subject. Another potential source of variability not addressed in the model is the `centre` variable that may account for some correlation 
+<!-- (for example due to their geographical location)  -->
+between subjects. Even in this case we might consider to include it as a random effect.
 
 We have considered as our outcome the time to first seizure post-randomisation. The dataset also contains information about the time to second and fifth seizure, and the time to the first tonic-clonic seizure. Additionally investigating these outcomes could enrich the results and establish the longevity of the treatment effect.
 
