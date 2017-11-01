@@ -9,6 +9,7 @@ bibliography: MESSbib.bib
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, fig.align="center", warning=FALSE)
 
+library(knitr)
 library(survival)
 library(timereg)
 library(dplyr)
@@ -99,7 +100,7 @@ hist(mess$ager,breaks=20, col="grey", xlab="age at randomisation", main="")
 We see that the number of subjects having each treatment is roughly equal, in accordance with the design of the study.
 ```{r}
 t.trt <- table(mess$trt)
-dimnames(t.trt) <- list(treatment=c(0,1))
+dimnames(t.trt) <- list(treatment=c("Immediate","Deferred"))
 t.trt
 ```
 
@@ -206,11 +207,14 @@ $$\lambda(t|X) = \lambda_0(t)\exp{(X^T \beta)}$$
 where $X$ is the matrix of covariates and $\beta$ is the vector of coefficients to be estimated, and $\lambda_0(t)$ is the baseline hazard (i.e. when all covariates are zero). The exponential of a coefficient $\exp(\beta_i)$ represents the multiplicative effect on the hazard resulting from a unit increase in the corresponding covariate.
 
 First we fit a naive proportional hazards model with the covariates of interest. We see that the treatment `trt` is significant, as is the number `nseiz` of seizures prior to entering the study. This is to be expected since subjects with a tendency for more frequent seizures are likely to go less time before the first post-randomisation seizure regardless of treatment. The elapsed time `period` between the subject's first seizure and their entry into the trial is slightly significant, which is also unsurprising.
+
 ```{r}
 mycox <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz + period, data=mess)
-summary(mycox)$coefficients[,c(1,2,5)]
+kable(summary(mycox)$coefficients[,c(1,2,5)], digits = 3)
 ```
+
 Next we assess whether proportional hazards is a suitable assumption for these data. We see from the residual plots that the treatment seems to have a decreasing effect over time, but the residuals of the other covariates don't seem to vary over time. This is confirmed by the small p-value for `trt` in the test of the proportional hazards assumption. The treatment effect decreasing over time is indicative that a proportional hazards model is not suitable, but we will try a few fixes before abandoning the Cox model completely.
+
 ```{r}
 #cox.zph(mycox)
 #par(mfrow=c(3,2))
@@ -218,25 +222,30 @@ Next we assess whether proportional hazards is a suitable assumption for these d
 ```
 
 Next we try adding into the model an interaction term of treatment with time, to correct for the problem with the first model. We see, as expected, that the interaction term is very significant. However the proportional hazards model is still rejected.
+
 ```{r}
 mycox2 <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz + period + trt:intseiz1, data=mess)
-summary(mycox2)$coefficients[,c(1,2,5)]
+kable(summary(mycox2)$coefficients[,c(1,2,5)], digits = 3)
 #cox.zph(mycox2)
 ```
 
 Next we fit the model using the transformed versions of `period` and `nseiz`. The significant covariates are largely the same as in the first model, however the assumption of proportional hazards is not supported in the `trt` and `nseiz` terms.
+
 ```{r}
 mycox3 <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz.tr + period.tr, data=mess)
-summary(mycox3)$coefficients[,c(1,2,5)]
+kable(summary(mycox3)$coefficients[,c(1,2,5)], digits = 3)
 #cox.zph(mycox3)
 ```
 
 Finally, in the next model we include an interaction term between `trt` and `nseiz`, since it is plausible that the treatment may have a different effect on people who suffer more severely (indicated by having had more seizures previously). With this model the proportional hazards assumption appears to be satisfied. However we find that the interaction term is only slightly significant, and including the interaction drastically reduces the estimated treatment effect.
+
 ```{r}
 mycox4 <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz.tr + period.tr + trt:nseiz.tr, data=mess)
-summary(mycox4)$coefficients[,c(1,2,5)]
+kable(summary(mycox4)$coefficients[,c(1,2,5)], digits = 3)
 #cox.zph(mycox4)
 ```
+
+.............PROPORTIONAL HAZARDS ASSUMPTION FAILS: SHOW TEST AND PLOTS..................
 
 # Aalen's additive model
 
@@ -271,19 +280,22 @@ if(i %in% c(4,5)) mtext("Pre-randomisation",cex = 0.75, line = 0.5)
 An alternative to the Cox model is to consider a parametric specification for the distribution of survival times. In particular, the class of accelerated failure time (AFT) models provides the natural extension in case the proportional hazard assumption does not work. Following the introduction provided by @hosmer2008applied, it is possible to write the distribution of the time to event for the $i$-th subject as 
 $$\log(t_i)=\mu+\beta^T x_i+\sigma \epsilon_i $$
 
-where $\sigma$ is a scale parameter and $\epsilon_i$ is an error term with a prespecified distribution (the choice for this distribution determines the type of model). Common choices for the regression models are exponential, Weibull, lognormal (when the distribution of $\epsilon$ and therefore the distribution of $ln(t)$ is normal) and loglogistic: this choice will affect the shape of the hazard function, that may be monotonic or having a maximum dependent on the scale parameter. The effects in this model are multiplicative on the time scale: in other words, the time to the event depends on the exponential of the linear combination of the covariates weighted by the coefficients. The name “accelerated failure time” arises from the fact that given 
+ where $\sigma$ is a scale parameter and $\epsilon_i$ is an error term with a prespecified distribution (its choice determines the type of model). <!--Common choices for the regression models are exponential, Weibull, lognormal (when the distribution of $\epsilon$ and therefore the distribution of $ln(t)$ is normal) and loglogistic: this choice will affect the shape of the hazard function, that may be monotonic or having a maximum dependent on the scale parameter.   --> The effects in this model are multiplicative on the time scale: in other words, the time to the event depends on the exponential of the linear combination of the covariates weighted by the coefficients. The name “accelerated failure time” arises from the fact that given
 $$ t_i=\exp{[\beta^Tx_i]}\exp{[\sigma\epsilon_i]} $$
 the effect of the covariates is to “accelerate” or decelerate the time to the event of interest with respect to a subject with baseline characteristics (i.e., the one for which all the covariates assume value zero). This means that if for a given variable the coefficient is positive, the time to the event will increase, hence the effect of the covariate will be protective. Therefore, the sign of the coefficient has to be read in opposite way with respect to the proportional hazards models.
 
+In this report we proposed 4 parametric regression models: exponential, Weibull, lognormal (where $\epsilon$ and therefore $ln(t)$ are normally distributed) and loglogistic. The same set of covariates has been used for all of them: namely, `trt`, `sex`, `age`, `nseiz.tr`,`period.tr`, `abeeg`. The selection of the most suitable parametric form is done on the basis of the lowest AIC, that is reached by the lognormal model among the accelerated failure time (AFT) ones considered.
+
+
 ```{r, results='hide'}
-modpar1 <- survreg(surv1 ~ trt + ager + sex + nseiz + period + abeeg, mess, dist="exponential")
-#summary(modpar1)
-modpar2 <- survreg(surv1 ~ trt + ager + sex + nseiz + period + abeeg, mess, dist="weibull")
-#summary(modpar2)
-modpar3 <- survreg(surv1 ~ trt + ager + sex + nseiz + period + abeeg, mess, dist="lognormal")
-#summary(modpar3)
-modpar4 <- survreg(surv1 ~ trt + ager + sex + nseiz + period + abeeg, mess, dist="loglogistic")
-#summary(modpar4)
+# modpar1 <- survreg(surv1 ~ trt + ager + sex + nseiz + period + abeeg, mess, dist="exponential")
+# summary(modpar1)
+# modpar2 <- survreg(surv1 ~ trt + ager + sex + nseiz + period + abeeg, mess, dist="weibull")
+# summary(modpar2)
+# modpar3 <- survreg(surv1 ~ trt + ager + sex + nseiz + period + abeeg, mess, dist="lognormal")
+# summary(modpar3)
+# modpar4 <- survreg(surv1 ~ trt + ager + sex + nseiz + period + abeeg, mess, dist="loglogistic")
+# summary(modpar4)
 
 # modpar1 <- flexsurvreg(surv1 ~ trt + ager + sex + nseiz + period, data = mess, dist="weibull")
 # summary(modpar1)
@@ -294,23 +306,17 @@ modpar4 <- survreg(surv1 ~ trt + ager + sex + nseiz + period + abeeg, mess, dist
 # modpar5 <- flexsurvreg(surv1 ~ trt + ager + sex + nseiz + period, data = mess, dist="gengamma")
 # summary(modpar5)
 
-parmodels<-matrix(NA,nrow=4,ncol=4)
-parmodels[1,] <- c(summary(modpar1)$n, modpar1$loglik[1],summary(modpar1)$df, AIC(modpar1))
-parmodels[2,] <- c(summary(modpar2)$n, modpar2$loglik[1],summary(modpar2)$df, AIC(modpar2))
-parmodels[3,] <- c(summary(modpar3)$n, modpar3$loglik[1],summary(modpar3)$df, AIC(modpar3))
-parmodels[4,] <- c(summary(modpar4)$n, modpar4$loglik[1],summary(modpar4)$df, AIC(modpar4))
-colnames(parmodels) <- c("N.obs","Loglik","df","AIC")
-rownames(parmodels) <- c("exponential","weibull","lognormal","loglogistic")
-parmodels
+# parmodels<-matrix(NA,nrow=4,ncol=4)
+# parmodels[1,] <- c(summary(modpar1)$n, modpar1$loglik[1],summary(modpar1)$df, AIC(modpar1))
+# parmodels[2,] <- c(summary(modpar2)$n, modpar2$loglik[1],summary(modpar2)$df, AIC(modpar2))
+# parmodels[3,] <- c(summary(modpar3)$n, modpar3$loglik[1],summary(modpar3)$df, AIC(modpar3))
+# parmodels[4,] <- c(summary(modpar4)$n, modpar4$loglik[1],summary(modpar4)$df, AIC(modpar4))
+# colnames(parmodels) <- c("N.obs","Loglik","df","AIC")
+# rownames(parmodels) <- c("exponential","weibull","lognormal","loglogistic")
+# #parmodels
+# kable(parmodels, digits=3)
 ```
-Among the accelerated failure time (AFT) models, lognormal model is preferred.
-```{r, results='hide'}
-summary(modpar3)
 
-# pct <- 1:98/100   # The 100th percentile of predicted survival is at +infinity
-# ptime <- predict(modpar2, newdata=data.frame(trt=0,ager=24,sex=0,nseiz=1,period= 438.4), type='quantile',p=pct, se=TRUE)
-# matplot(cbind(ptime$fit, ptime$fit + 2*ptime$se.fit, ptime$fit - 2*ptime$se.fit)/30.5, 1-pct,xlab="Months", ylab="Survival", type='l', lty=c(1,2,2), col=1)
-```
 
 ```{r}
 ## Now let us consider the transformed variables.
@@ -326,28 +332,30 @@ parmodels.tr[3,] <- c(summary(modpar3.tr)$n, modpar3.tr$loglik[1],summary(modpar
 parmodels.tr[4,] <- c(summary(modpar4.tr)$n, modpar4.tr$loglik[1],summary(modpar4.tr)$df, AIC(modpar4.tr))
 colnames(parmodels.tr) <- c("N.obs","Loglik","df","AIC")
 rownames(parmodels.tr) <- c("exponential","weibull","lognormal","loglogistic")  
-parmodels.tr #the difference to be interpreted in terms of chisq(1) = 3.84 
-
-modpar.logn <- survreg(surv1 ~ . + trt:nseiz.tr , covars1, dist="lognormal") #using covars before it is defined... or is it covars1?
+#parmodels.tr #the difference to be interpreted in terms of chisq(1) = 3.84 
+kable(parmodels.tr, digits = 3)
 ```
 
+Once the parametric form has been established, we might consider to include other covariates in the model in order to discover whether they may have an influence on the phenomenon under study. In particular, we fitted a new lognormal model by adding to the previous set of covariates all the variables referring to the type of seizures experienced before randomization (`nsp`, `nps`, `nps`, `nmyo`, `nab`, `naab`, `ntc`, `noth`) and the type of EEG abnormality (`nsab`, `gparsp`, `gparnsp`, `fparsp`, `fparnsp`). In addition, we insert an interaction term between the treatment and the number of seizures pre-randomisation.
+
+ARE WE INTERESTED IN EEG? 
 ```{r}
-covars <- transmute(mess, ager, sex, trt, nsp, ncp, nps, nmyo, nab, naab, ntc, noth, nseiz.tr, period.tr, eeg, abeeg, nsab, gparsp, gparnsp, fparsp, fparnsp, swab)
-###DFNEW NOT WORKING!
-#dfNew <- data.frame(sex=factor(c(0,0)), trt=factor(c(0,1)),ager=84,nseiz.tr=factor(c(1,1)),period.tr = 3.4, abeeg = factor(c(1,1)))
-#percs <- (1:99)/100
-#FLogN <- predict(modpar3.tr, newdata=dfNew, type="quantile", p=percs, se=TRUE)
-#matplot(cbind(FLogN$fit[1, ],
-#              FLogN$fit[1, ] - 2*FLogN$se.fit[1, ],
-#              FLogN$fit[1, ] + 2*FLogN$se.fit[1, ])/365.25, 1-percs,
-#        type="l", main=expression(paste("LogNormal-Fit ", hat(S)(t), " with SE")),xlim = c(0,10),
-#        xlab="Time (in years)", ylab="Survival", lty=c(1, 2, 2), lwd=2, col="blue")
-#matlines(cbind(FLogN$fit[2, ],
-#               FLogN$fit[2, ] - 2*FLogN$se.fit[2, ],
-#               FLogN$fit[2, ] + 2*FLogN$se.fit[2, ])/365.25, 1-percs, col="red", lwd=2)
-#legend(x="topright", lwd=2, lty=c(1, 2, 1, 2), col=c("blue", "blue", "red", "red"),
-#       legend=c("Trt 1 (immediate)", "+- 2*SE", "Trt 0 (deferred)", "+- 2*SE"))
+covars <- transmute(mess, ager, sex, trt, nsp, ncp, nps, nmyo, nab, naab, ntc, noth, nseiz.tr, period.tr, eeg, abeeg, nsab, gparsp, gparnsp, fparsp, fparnsp)  ###swab removed because it gives errors
+
+###Double check that the lognormal is the best
+# a1<-survreg(surv1 ~ . + trt:nseiz.tr , covars, dist="exponential") 
+# a2<-survreg(surv1 ~ . + trt:nseiz.tr , covars, dist="weibull") 
+# a3<-survreg(surv1 ~ . + trt:nseiz.tr , covars, dist="lognormal") 
+# a4<-survreg(surv1 ~ . + trt:nseiz.tr , covars, dist="loglogistic")
+# which.min(c(AIC(a1),AIC(a2),AIC(a3),AIC(a4)))
+
+modpar.logn <- survreg(surv1 ~ . + trt:nseiz.tr , covars, dist="lognormal") 
+kable(summary(modpar.logn)$table, digits = 3)
 ```
+
+We point out that many of the variables included in the model (especially those referring to an EEG abnormality) seems to be not significant. 
+SOMETHING TO LINK THIS PARAGRAPH AND THE NEXT ONE.
+
 ```{r, include=FALSE}
 ## Survival Lasso
 # 
@@ -369,7 +377,7 @@ We would like to ensure that the set of covariates we include in the model is re
 
 Again we omit the `centre` variable since it destabilises the model, having a large number of levels many of which correspond to only one observation. If we had some additonal information say about suitably groupings of centres it would be sensible to include it. For instance, in @marson2005 the authors distinguish between UK and non-UK centres. However we do not have any information linking the number of a centre to its location. However we now inlcude the counts of every type of seizure, and the results of all tests, as possible covariates. 
 
-We still omit date variables. we found that the error rate didn't really decrease by creating more than 100-200 trees, so we use `ntree = 200`. There is not a universal threshold on the `vimp` above which variables should be considered selected, but in the literature `vimp=0.02` has been suggested as a rule-of-thumb.
+We still omit date variables. we found that the error rate didn't really decrease by creating more than 100-200 trees, so we use `ntree = 200`. There is not a universal threshold on the `vimp` above which variables should be considered selected, but in the literature `vimp=0.002` has been suggested as a rule-of-thumb.
 ```{r, cache=TRUE, out.width="60%"}
 rsf.surv1<-rfsrc(Surv(intseiz1, indseiz1, type="right") ~ ager + sex + trt + nsp + ncp + nps + nmyo + nab + naab + ntc + noth + nseiz.tr + period.tr + eeg + abeeg + nsab + gparsp + gparnsp + fparsp + fparnsp + swab, data=mess, ntree = 200, importance=TRUE,  tree.err = T)
 
@@ -385,6 +393,55 @@ The six most important variables in random forests were all significant in the l
 
 For the purposes of our model, we will include only the covariates which the parametric and non-parametric approaches have both selected, namely `nseiz`, `trt`, `ncp`, `nsp`, `abeeg`, and `nmyo`. This captures the most important covariates of each approach.
 
+
+# Final model
+
+Given a parametric specification for the model and a restricted set of covariates, we can fit the final model for the data at hand. PARSIMONIOUS MODEL
+
+WHAT ABOUT PERIOD.TR?
+```{r}
+modpar.lognFINAL <- survreg(surv1 ~  trt + nseiz.tr + abeeg + ncp + nsp + nmyo + trt:nseiz.tr + period.tr , covars, dist="lognormal") 
+kable(summary(modpar.lognFINAL)$table, digits = 3)
+```
+
+SCALE PARAMETER LARGER THAN 1
+
+```{r}
+modpar.lognFINAL$scale
+```
+
+FINAL CONSIDERATIONS ABOUT THE INTERPRETATION OF COEFFICIENTS.
+
+PREDICTION FOR SOME SUBJECTS.
+```{r}
+###DFNEW NOT WORKING!
+#dfNew <- data.frame(sex=factor(c(0,0)), trt=factor(c(0,1)),ager=84,nseiz.tr=factor(c(1,1)),period.tr = 3.4, abeeg = factor(c(1,1)))
+#percs <- (1:99)/100
+#FLogN <- predict(modpar3.tr, newdata=dfNew, type="quantile", p=percs, se=TRUE)
+#matplot(cbind(FLogN$fit[1, ],
+#              FLogN$fit[1, ] - 2*FLogN$se.fit[1, ],
+#              FLogN$fit[1, ] + 2*FLogN$se.fit[1, ])/365.25, 1-percs,
+#        type="l", main=expression(paste("LogNormal-Fit ", hat(S)(t), " with SE")),xlim = c(0,10),
+#        xlab="Time (in years)", ylab="Survival", lty=c(1, 2, 2), lwd=2, col="blue")
+#matlines(cbind(FLogN$fit[2, ],
+#               FLogN$fit[2, ] - 2*FLogN$se.fit[2, ],
+#               FLogN$fit[2, ] + 2*FLogN$se.fit[2, ])/365.25, 1-percs, col="red", lwd=2)
+#legend(x="topright", lwd=2, lty=c(1, 2, 1, 2), col=c("blue", "blue", "red", "red"),
+#       legend=c("Trt 1 (immediate)", "+- 2*SE", "Trt 0 (deferred)", "+- 2*SE"))
+```
+
 # Further research
+
+SCALE PARAMETER DEPENDING ON TREATMENT
+
+LOGISTIC AFTER 6 MONTHS, 1 YEAR...
+
+FRAILTY MODELS (and consider centre effect)
+
+TONIC CLONIC SEIZURES, 2ND AND 5TH SEIZURES...
+
+
+JANE'S MODEL
+
 
 ## References
