@@ -232,7 +232,7 @@ Next we fit the model using the transformed versions of `period` and `nseiz`. Th
 
 ```{r}
 mycox3 <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz.tr + period.tr, data=mess)
-kable(cbind(summary(mycox3)$coefficients[,c(1,2,5)],invisible(print(cox.zph(mycox3)))[-nrow(invisible(print(cox.zph(mycox3)))),3]), digits = 3, col.names=c("coef","exp(coef)","p.coef","p.PH"))
+kable(cbind(summary(mycox3)$coefficients[,c(1,2,5)],cox.zph(mycox3)$table[- nrow(cox.zph(mycox3)$table),3]), digits = 3, col.names=c("coef","exp(coef)","p.coef","p.PH"))
 #cox.zph(mycox3)
 ```
 
@@ -240,7 +240,7 @@ Finally, in the next model we include an interaction term between `trt` and `nse
 
 ```{r}
 mycox4 <- coxph(Surv(mess$intseiz1,mess$indseiz1,type="right") ~ trt + ager + sex + nseiz.tr + period.tr + trt:nseiz.tr, data=mess)
-kable(cbind(summary(mycox4)$coefficients[,c(1,2,5)],invisible(print(cox.zph(mycox4)))[-nrow(invisible(print(cox.zph(mycox4)))),3]), digits = 3, col.names=c("coef","exp(coef)","p.coef","p.PH"))
+kable(cbind(summary(mycox4)$coefficients[,c(1,2,5)],cox.zph(mycox4)$table[- nrow(cox.zph(mycox4)$table),3]), digits = 3, col.names=c("coef","exp(coef)","p.coef","p.PH"))
 #cox.zph(mycox4)
 ```
 
