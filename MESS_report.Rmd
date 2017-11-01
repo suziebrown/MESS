@@ -348,8 +348,9 @@ covars <- transmute(mess, ager, sex, trt, nsp, ncp, nps, nmyo, nab, naab, ntc, n
 # a4<-survreg(surv1 ~ . + trt:nseiz.tr , covars, dist="loglogistic")
 # which.min(c(AIC(a1),AIC(a2),AIC(a3),AIC(a4)))
 
-modpar.logn <- survreg(surv1 ~ . + trt:nseiz.tr , covars, dist="lognormal") 
-kable(summary(modpar.logn)$table, digits = 3)
+modpar.logn <- survreg(surv1 ~ . + trt:nseiz.tr , covars, dist="lognormal")
+modpar.signif <- summary(modpar.logn)$table[,4]<=0.05
+kable(summary(modpar.logn)$table[modpar.signif,], digits = 3)
 ```
 
 We point out that many of the variables included in the model (especially those referring to an EEG abnormality) seems to be not significant. 
