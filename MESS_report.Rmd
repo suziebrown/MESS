@@ -15,7 +15,7 @@ library(timereg)
 library(dplyr)
 library(randomForestSRC)
 library(ggRandomForests)
-#library(flexsurv)
+library(flexsurv)
 #library(plotmo)
 ```
 
@@ -439,8 +439,6 @@ legend("topright",c("immediate","deferred"),lwd=2, col=c("red","blue"))
 ```
 
 # Further research
-
-We could extend the log-normal model to include a scale parameter dependent on the treatment, in order to capture any difference in scale between the immediate and deferred treatment groups.
 
 We have not considered the `centre` variable in our models. A good way to include the variation by centre might be to use a frailty model to allow for a random centre effect.
 
