@@ -244,7 +244,6 @@ kable(cbind(summary(mycox4)$coefficients[,c(1,2,5)],print(cox.zph(mycox4))[-nrow
 #cox.zph(mycox4)
 ```
 
-.............PROPORTIONAL HAZARDS ASSUMPTION FAILS: SHOW TEST AND PLOTS..................
 
 # Aalen's additive model
 
@@ -419,22 +418,24 @@ axis(side=1, at=n.years,labels = 2*0:(length(n.years) - 1))
 legend("topright", c('','name'), legend = c("Kaplan - Meier", "Lognormal"), col = c(1,2), lty = c(1,1))
 ```
 
+# Prediction
 
-```{r}
-###DFNEW NOT WORKING!
-#dfNew <- data.frame(sex=factor(c(0,0)), trt=factor(c(0,1)),ager=84,nseiz.tr=factor(c(1,1)),period.tr = 3.4, abeeg = factor(c(1,1)))
-#percs <- (1:99)/100
-#FLogN <- predict(modpar.lognFINAL, newdata=dfNew, type="quantile", p=percs, se=TRUE)
-#matplot(cbind(FLogN$fit[1, ],
-#              FLogN$fit[1, ] - 2*FLogN$se.fit[1, ],
-#              FLogN$fit[1, ] + 2*FLogN$se.fit[1, ])/365.25, 1-percs,
-#        type="l", main=expression(paste("LogNormal-Fit ", hat(S)(t), " with SE")),xlim = c(0,10),
-#        xlab="Time (in years)", ylab="Survival", lty=c(1, 2, 2), lwd=2, col="blue")
-#matlines(cbind(FLogN$fit[2, ],
-#               FLogN$fit[2, ] - 2*FLogN$se.fit[2, ],
-#               FLogN$fit[2, ] + 2*FLogN$se.fit[2, ])/365.25, 1-percs, col="red", lwd=2)
-#legend(x="topright", lwd=2, lty=c(1, 2, 1, 2), col=c("blue", "blue", "red", "red"),
-#       legend=c("Trt 1 (immediate)", "+- 2*SE", "Trt 0 (deferred)", "+- 2*SE"))
+```{r, out.width="70%"}
+percs <- (1:99)/100
+
+mydf1 <- list(trt=factor(0), nseiz.tr=FALSE, abeeg=factor(0), ncp=0, nsp=0, nmyo=0)
+mypred1 <- predict(modpar.lognFINAL, newdata=mydf1, terms=c("trt"), type="quantile", p=percs, se=TRUE)
+
+mydf2 <- list(trt=factor(1), nseiz.tr=FALSE, abeeg=factor(0), ncp=0, nsp=0, nmyo=0)
+mypred2 <- predict(modpar.lognFINAL, newdata=mydf2, terms=c("trt"), type="quantile", p=percs, se=TRUE)
+
+dat1<-cbind(mypred1$fit, mypred1$fit - 2*mypred1$se.fit, mypred1$fit + 2*mypred1$se.fit)/365.25
+dat2<-cbind(mypred2$fit, mypred2$fit - 2*mypred2$se.fit, mypred2$fit + 2*mypred2$se.fit)/365.25
+
+matplot(dat1, 1-percs, type="l", main="Predictive curves for baseline subject with each treatment",xlim = c(0,10), xlab="time (years)", ylab="survival probability", lty=c(1,3,3), lwd=2, col="blue", cex=0.8)
+matlines(dat2, 1-percs, lty=c(1,3,3), lwd=2, col="red")
+
+legend("topright",c("immediate","deferred"),lwd=2, col=c("red","blue"))
 ```
 
 # Further research
@@ -447,7 +448,7 @@ We have considered as our outcome the time to first seizure post-randomisation. 
 
 Alternatively, working with the first seizure outcome, we could transform the outcome to an indicator "seizure free for first six months Y/N" or similar, and fit a logistic model. This outcome is of interest because it determines whether or not a patient is allowed to drive again.
 
-Another way to look at the data is to consider each patient as having their own unobserved seizure rate $\lambda_i$ pre-randomisation, and consider the treatment effect in terms of how this compares to their post-treatment seizure rate, say $\gamma_i$. This is quite different to the standard medical statistics approaches we have used, but makes sense from a modelling perspective. REFERENCE
+Another way to look at the data is to consider each patient as having their own unobserved seizure rate $\lambda_i$ pre-randomisation, and consider the treatment effect in terms of how this compares to their post-treatment seizure rate, say $\gamma_i$. This is quite different to the standard medical statistics approaches we have used, but makes sense from a modelling perspective. This approach was treat in @cowling2006joint.
 
 
 ## References
