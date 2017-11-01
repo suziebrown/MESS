@@ -335,9 +335,9 @@ rownames(parmodels.tr) <- c("exponential","weibull","lognormal","loglogistic")
 kable(parmodels.tr, digits = 3)
 ```
 
-Once the parametric form has been established, we might consider to include other covariates in the model in order to discover whether they may have an influence on the phenomenon under study. In particular, we fitted a new lognormal model by adding to the previous set of covariates all the variables referring to the type of seizures experienced before randomization (`nsp`, `nps`, `nps`, `nmyo`, `nab`, `naab`, `ntc`, `noth`) and the type of EEG abnormality (`nsab`, `gparsp`, `gparnsp`, `fparsp`, `fparnsp`). In addition, we insert an interaction term between the treatment and the number of seizures pre-randomisation.
+Once the parametric form has been established, we might consider to include other covariates in the model in order to discover whether they may have an influence on the phenomenon under study. In particular, we fitted a new lognormal model by adding to the previous set of covariates all the variables referring to the type of seizures experienced before randomization (`nsp`, `nps`, `nps`, `nmyo`, `nab`, `naab`, `ntc`, `noth`) and the type of EEG abnormality (`nsab`, `gparsp`, `gparnsp`, `fparsp`, `fparnsp`). In addition, we insert an interaction term between the treatment and the number of seizures pre-randomisation. For comprehensibility we display only the significant covariates here. We point out that many of the variables included in the model (especially those referring to an EEG abnormality) seems to be not significant. 
 
-ARE WE INTERESTED IN EEG? 
+
 ```{r}
 covars <- transmute(mess, ager, sex, trt, nsp, ncp, nps, nmyo, nab, naab, ntc, noth, nseiz.tr, period.tr, eeg, abeeg, nsab, gparsp, gparnsp, fparsp, fparnsp)  ###swab removed because it gives errors
 
@@ -353,8 +353,6 @@ modpar.signif <- summary(modpar.logn)$table[,4]<=0.05
 kable(summary(modpar.logn)$table[modpar.signif,], digits = 3)
 ```
 
-
-We point out that many of the variables included in the model (especially those referring to an EEG abnormality) seems to be not significant. For comprehensibility we display only the significant covariates here. 
 
 ```{r, include=FALSE}
 ## Survival Lasso
@@ -375,7 +373,7 @@ We point out that many of the variables included in the model (especially those 
 
 We would like to ensure that the set of covariates we include in the model is relatively stable. Up to now we have only selected covariates insofar as the fitted log-normal model has some significant and some insignificant covariates. We now compare the set of significant covariates in the log-normal model to those obtained using a non-parametric variable selection technique, namely random survival forests.
 
-Again we omit the `centre` variable since it destabilises the model, having a large number of levels many of which correspond to only one observation. If we had some additonal information say about suitably groupings of centres it would be sensible to include it. For instance, in @marson2005 the authors distinguish between UK and non-UK centres. However we do not have any information linking the number of a centre to its location. However we now inlcude the counts of every type of seizure, and the results of all tests, as possible covariates. 
+Again we omit the `centre` variable since it destabilises the model, having a large number of levels many of which correspond to only one observation. If we had some additonal information say about suitably groupings of centres it would be sensible to include it. For instance, in @marson2005 the authors distinguish between UK and non-UK centres. However we do not have any information linking the number of a centre to its location. However we now include the counts of every type of seizure, and the results of all tests, as possible covariates. 
 
 We still omit date variables. we found that the error rate didn't really decrease by creating more than 100-200 trees, so we use `ntree = 200`. There is not a universal threshold on the `vimp` above which variables should be considered selected, but in the literature `vimp=0.002` has been suggested as a rule-of-thumb.
 ```{r, cache=TRUE, out.width="60%"}
@@ -407,20 +405,18 @@ kable(as.data.frame(summary.final), digits = 3)
 
 Having a deferred treatment increases the hazard of a new seizure by around 68%; the hazard for a subject with more than a seizure pre-randomisation is approximately double than the one for those with only a seizure, *ceteris paribus*. At a 0.05 significance level, the interaction between the two variables is not significant. The other variable that induces a relevant change in the hazards is the presence of an abnormal EEG, while the other variables concerning the type of seizures pre-randomisation give a hazard ratio close to 1 but still significant. 
 
-SCALE PARAMETER LARGER THAN 1
-
-```{r}
-modpar.lognFINAL$scale
-```
+SCALE PARAMETER LARGER THAN 1 `r modpar.lognFINAL$scale`
 
 FINAL CONSIDERATIONS ABOUT THE INTERPRETATION OF COEFFICIENTS.
 
 PREDICTION FOR SOME SUBJECTS.
+
+
 ```{r}
 ###DFNEW NOT WORKING!
 #dfNew <- data.frame(sex=factor(c(0,0)), trt=factor(c(0,1)),ager=84,nseiz.tr=factor(c(1,1)),period.tr = 3.4, abeeg = factor(c(1,1)))
 #percs <- (1:99)/100
-#FLogN <- predict(modpar3.tr, newdata=dfNew, type="quantile", p=percs, se=TRUE)
+#FLogN <- predict(modpar.lognFINAL, newdata=dfNew, type="quantile", p=percs, se=TRUE)
 #matplot(cbind(FLogN$fit[1, ],
 #              FLogN$fit[1, ] - 2*FLogN$se.fit[1, ],
 #              FLogN$fit[1, ] + 2*FLogN$se.fit[1, ])/365.25, 1-percs,
