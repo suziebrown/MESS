@@ -173,24 +173,25 @@ plot(t.age, main="randomisation by age", ylab="treatment", xlab='')
 
 # Exploratory Kaplan-Meier curves
 
-We plot Kaplan-Meier curves of the first seizure after randomization, grouped by treatment and sex. The first plot shows that the survival probability for those who received a deferred treatment is lower than for those immediately treated, at least for the first 5 years after the randomization. From the second plot it seems that sex does not have a significant effect on the survival probability.
+We plot Kaplan-Meier curves of the first seizure after randomisation, grouped by treatment and sex. The first plot shows that the survival probability for those who received a deferred treatment is lower than for those immediately treated, at least for the first 5 years after the randomisation. From the second plot it seems that sex does not have a significant effect on the survival probability.
 ```{r}
 surv1 <- with(mess, Surv(intseiz1, indseiz1 == 1))
 mfit <- survfit(surv1 ~ 1, conf.type = "log-log", data = mess)
 #options(survfit.print.mean =T)
-#plot(mfit, mark.time=T, xlab =factor(c(1,1)) "Days since randomization",ylab = "Survival")
+#plot(mfit, mark.time=T, xlab =factor(c(1,1)) "Days since randomisation",ylab = "Survival")
 #summary(mfit,censored=T)
 par(mfrow=c(1,2))
 n.years <- seq(365.25, max(mess$intseiz1), by=365.25)
-mfit.trt <- survfit(surv1 ~ trt, conf.type = "log-log", data = mess)
-plot(mfit.trt, conf.int = T, mark.time=F, col =  2:3, xlab = "Years since randomisation", ylab = "Survival probability" ,xaxt = 'n')
-axis(side=1, at=n.years,labels = 1:length(n.years))
+mfit.trt <- survfit(surv1 ~ trt,  data = mess)  #conf.type = "log-log",
+plot(mfit.trt, conf.int = T, mark.time=F, col =  2:3, xlab = "Years since randomisation", ylab = "Survival probability" ,xscale = 365.25)#,xaxt = 'n')
+#axis(side=1, at=n.years,labels = 1:length(n.years))
 legend("topright", legend = c("Immediate","Deferred"), col = 2:3, lty=1)
 mfit.sex <- survfit(surv1 ~ sex, conf.type = "log-log", data = mess)
-plot(mfit.sex, conf.int = T, mark.time=F, col = c("orange","brown"), xlab = "Years since randomisation",ylab = "Survival probability",xaxt = 'n')
-axis(side=1, at=n.years,labels = 1:length(n.years))
+plot(mfit.sex, conf.int = T, mark.time=F, col = c("orange","brown"), xlab = "Years since randomisation",ylab = "Survival probability",xscale = 365.25)#,xaxt = 'n')
+#axis(side=1, at=n.years,labels = 1:length(n.years))
 legend("topright", legend = c("Male","Female"), col = c("orange","brown"), lty=1)
 
+#plot(mfit.trt, mark.time = FALSE, fun = "cloglog")
 #lfit <- survreg(surv1 ~ trt, data=mess)
 #pct <- 1:98/100   # The 100th percentile of predicted survival is at +infinity
 #ptime <- predict(lfit, newdata=mess, type='quantile',p=pct, se=TRUE)
@@ -241,17 +242,26 @@ summary(mycox4)$coefficients[,c(1,2,5)]
 
 The proportional hazards assumption underlying Cox model might be in many cases too strict and lead to unrealistic conclusions. Moreover, it is not uncommon to consider that the effect of one or more covariates might change over time. In these cases the model proposed by @aalen1989linear provides a flexible way to tackle these issues. Unlike Cox model, in Aalen's model the effect of the covariate on the hazard function at time t is additive. In other words, the hazard function at time t is a linear function of the covariates. Each coefficient is a function allowed to vary over time; in this sense, the model is fully nonparametric. At time t, the value of the coefficient function is to be read as the variation with respect to the baseline hazard function induced by a change of one unit (level in case of categorical variables) in the covariates. 
 
-Aalen's additive model is widely used because of the easiness in the interpretation of the graphical results, that report the cumulative regression coefficient over time with 95% confidence bands. When the effect of the covariate is constant over time (like in Cox model), the cumulative regression coefficient will look like a straight line; on the contrary, if the effect becomes null only after a certain time point, the slope of the cumulative regression coefficient will decrease towards zero. When the covariate does not play a role in explaining the variability in the hazard function, the value 0 will be included in the confidence bands for all the time interval.
+Aalen's additive model is widely used because of the easiness in the interpretation of the graphical results, that report the cumulative regression coefficient over time with 95% confidence bands. The slope of the cumulative coefficient function gives indeed some information about the effect of a variable on the outcome of interest.<!-- When the effect of the covariate is constant over time (like in Cox model), the cumulative regression coefficient will look like a straight line; on the contrary, if the effect becomes null only after a certain time point, the slope of the cumulative regression coefficient will decrease towards zero. When the covariate does not play a role in explaining the variability in the hazard function, the value 0 will be included in the confidence bands for all the time interval. -->
+For what concerns the effect of deferring the treatment, the cumulative coefficient increases in the first two years approximately after randomisation, then remains flat: this suggests that the hazard ratio is fairly stable until that breakpoint and then it gets closer to 1. In other words, after two years having received the treatment immediately or not has no effect on the time to the next seizure. A similar conclusion can be drawn on the number of seizures pre-randomisation. In addition, the time from the last seizure .... .......... has not a significant effect after approximately 2 years, while the effect of an abnormal EEG is quite constant over time
 
 ```{r}
 modaalen<-aalen(surv1 ~ trt + const(ager) + const(sex) + const(nseiz) + const(period) + const(abeeg), data = mess , n.sim=100)
-summary(modaalen)
+#summary(modaalen)
 #par(mfrow=c(3,3))
-plot(modaalen)
+#plot(modaalen)
 modaalen2<-aalen(surv1 ~ trt + const(ager) + sex + nseiz.tr + period.tr + abeeg , data = mess , n.sim=100)
 #modaalen3<-aalen(surv1 ~ . - ager + const(ager), data = covars , n.sim=100)
 #x11()
-plot(modaalen2)
+par(mfrow=c(2,2))
+#c(2,4,5,6)
+titles <- c("NA","Deferred treatment (1)", "NA","Number of seizures > 1", "Period from last seizure (log)", "Abnormal EEG")
+for (i in c(2,4,5,6)){
+plot(modaalen2, specific.comps = i, xlab = "Time (in days)", mains = F)
+title(main = titles[i])
+if(i %in% c(4,5)) mtext("Pre-randomisation",cex = 0.75, line = 0.5)
+}
+#axis(side=1, at=n.years,labels = 1:length(n.years))
 #dev.off()
 #plot(modaalen2)
 ```
