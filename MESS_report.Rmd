@@ -6,6 +6,7 @@ output: pdf_document
 bibliography: MESSbib.bib
 ---
 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, fig.align="center", warning=FALSE)
 
@@ -22,7 +23,7 @@ library(flexsurv)
 
 # Introduction
 
-Th MESS data comes from a randomised controlled trial about treatments for epilepsy. The subjects in the study are patients who have had only one seizure or hve not had epilepsy for long. There are two treatments; either immediate or deferred. Patients assigned the deferred treatment are not prescribed anti-epileptic drugs after their first seizure, but the decision is revisited if they have further seizures.
+The MESS data comes from a randomised controlled trial about treatments for epilepsy. The subjects in the study are patients who have had only one seizure or have not had epilepsy for long. There are two treatments; either immediate or deferred. Patients assigned the deferred treatment are not prescribed anti-epileptic drugs after their first seizure, but the decision is revisited if they have further seizures.
 
 Because many people have only one seizure in their life, we don't necessarily want to put patients on anti-epileptic drugs after just one seizure. However, we also don't want patients going on to have further seizures that could have been prevented or reduced by starting treatment immediately.
 
@@ -39,6 +40,7 @@ mess <- read.csv("MESSdat.csv", sep="\t", header=T)
 ### Change data types
 
 We first format as factors those variables that should be factors, format the dates as dates, and change the 1/2-coded binary variables to 0/1.
+
 ```{r}
 #Treatment 0/1 and sex 0/1 have been stored as numeric; we change the data type to factor.
 mess$trt<-as.factor(mess$trt)
@@ -82,6 +84,7 @@ mess$swab <- as.factor(ifelse(mess$swab==2,0,mess$swab))
 ### Check censoring indicator
 
 Next we want to see which way round the censoring indicator is used. We see that where the censoring indicator `ind1yr` is 1, the time to one year remission `int1yr` has minimum 365, whereas where `ind1yr` is 0, the minimum is 1. From this we deduce that the indicator is 1 when the variable is observed and 0 if the variable is censored.
+
 ```{r, results='hide'}
 summary(mess$int1yr[mess$ind1yr==1])
 summary(mess$int1yr[mess$ind1yr==0])
@@ -90,6 +93,7 @@ summary(mess$int1yr[mess$ind1yr==0])
 ### Missing data
 
 We verify that the same data are missing from `d1seiz` and `period`. These were probably subjects who couldn't remember the date of their first seizure, and/or whose medical records were missing. This suggests they are missing not at random - for instance if the subject can't remember the date it is likely to be a long time ago, i.e. higher values of `period`. However, since they are only 5 out of 1425 observations, we suspect it will not make much difference to treat them as if missing at random.
+
 ```{r, results='hide'}
 all.equal(which(is.na(mess$d1seiz)),which(is.na(mess$period)))
 ```
@@ -256,7 +260,7 @@ $$h(t,x,\mathbb{\beta(t)}) =  \beta_0(t)+  \beta_1(t)x_1+...+ \beta_p(t)x_p.$$
 Each coefficient is a function allowed to vary over time; in this sense, the model is fully nonparametric. At time t, the value of the coefficient function is to be read as the variation with respect to the baseline hazard function induced by a change of one unit (level in case of categorical variables) in the covariates. 
 
 Aalen's additive model is widely used because of the easiness in the interpretation of the graphical results, that report the cumulative regression coefficient over time with 95% confidence bands. The slope of the cumulative coefficient function gives indeed some information about the effect of a variable on the outcome of interest.<!-- When the effect of the covariate is constant over time (like in Cox model), the cumulative regression coefficient will look like a straight line; on the contrary, if the effect becomes null only after a certain time point, the slope of the cumulative regression coefficient will decrease towards zero. When the covariate does not play a role in explaining the variability in the hazard function, the value 0 will be included in the confidence bands for all the time interval. -->
-For what concerns the effect of deferring the treatment, the cumulative coefficient increases in the first two years approximately after randomisation, then remains flat: this suggests that the hazard ratio is fairly stable until that breakpoint and then it gets closer to 1. In other words, after two years having received the treatment immediately or not has no effect on the time to the next seizure. A similar conclusion can be drawn on the number of seizures pre-randomisation. In addition, the time between the last seizure and the randomisation date has not a significant effect after approximately 2 years, while the effect of an abnormal EEG is quite constant over time
+For what concerns the effect of deferring the treatment, the cumulative coefficient increases in the first two years approximately after randomisation, then remains flat: this suggests that the hazard ratio is fairly stable until that breakpoint and then it gets closer to 1. In other words, after two years having received the treatment immediately or not has no effect on the time to the next seizure. A similar conclusion can be drawn on the number of seizures pre-randomisation. In addition, the time between the last seizure and the randomisation date has not a significant effect after approximately 2 years, while the effect of an abnormal EEG is quite constant over time.
 
 ```{r}
 modaalen<-aalen(surv1 ~ trt + const(ager) + const(sex) + const(nseiz) + const(period) + const(abeeg), data = mess , n.sim=100)
@@ -426,8 +430,8 @@ legend("topright", legend = c("Kaplan - Meier", "Lognormal"), col = c(1,2), lty 
 
 The parametric model gives an easy way to predict the survival probability of a subject with given characteristics. For the plots below, we considered the effect of the treatment for subject with 1 or more than 1 seizures, keeping constant the values for the other variables. The immediate treatment shows a significant beneficial effect especially for those subject presenting more than 1 seizures before randomisation.
 
-```{r}
-par(mrow=c(1,2))
+```{r, out.width="70%"}
+par(mfrow=c(1,2))
 percs <- (1:99)/100
 
 mydf1 <- list(trt=factor(0), nseiz.tr=FALSE, abeeg=factor(0), ncp=0, nsp=0, nmyo=0)
@@ -439,7 +443,7 @@ mypred2 <- predict(modpar.lognFINAL, newdata=mydf2, terms=c("trt"), type="quanti
 dat1<-cbind(mypred1$fit, mypred1$fit - 2*mypred1$se.fit, mypred1$fit + 2*mypred1$se.fit)/365.25
 dat2<-cbind(mypred2$fit, mypred2$fit - 2*mypred2$se.fit, mypred2$fit + 2*mypred2$se.fit)/365.25
 
-matplot(dat1, 1-percs, type="l", main="Predictive curves for subject with 1 seizure",xlim = c(0,10), xlab="time (years)", ylab="survival probability", lty=c(1,3,3), lwd=2, col="red", cex=0.8)
+matplot(dat1, 1-percs, type="l", main="Subject with 1 seizure",xlim = c(0,10), xlab="time (years)", ylab="survival probability", lty=c(1,3,3), lwd=2, col="red", cex=0.8)
 matlines(dat2, 1-percs, lty=c(1,3,3), lwd=2, col="blue")
 
 legend("topright",c("immediate","deferred"),lwd=2, col=c("red","blue"))
@@ -452,10 +456,8 @@ mypred2 <- predict(modpar.lognFINAL, newdata=mydf2, terms=c("trt"), type="quanti
 
 dat1<-cbind(mypred1$fit, mypred1$fit - 2*mypred1$se.fit, mypred1$fit + 2*mypred1$se.fit)/365.25
 dat2<-cbind(mypred2$fit, mypred2$fit - 2*mypred2$se.fit, mypred2$fit + 2*mypred2$se.fit)/365.25
-
-matplot(dat1, 1-percs, type="l", main="Predictive curves for subject with >1 seizure",xlim = c(0,10), xlab="time (years)", ylab="survival probability", lty=c(1,3,3), lwd=2, col="red", cex=0.8)
+matplot(dat1, 1-percs, type="l", main="Subject with >1 seizure",xlim = c(0,10), xlab="time (years)", ylab="survival probability", lty=c(1,3,3), lwd=2, col="red", cex=0.8)
 matlines(dat2, 1-percs, lty=c(1,3,3), lwd=2, col="blue")
-
 legend("topright",c("immediate","deferred"),lwd=2, col=c("red","blue"))
 ```
 
