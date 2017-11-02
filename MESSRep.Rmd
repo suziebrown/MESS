@@ -256,7 +256,7 @@ kable(cbind(summary(mycox4)$coefficients[,c(1,2,5)],cox.zph(mycox4)$table[- nrow
 # Aalen's additive model
 
 The proportional hazards assumption underlying the Cox model might be in many cases too strict and lead to unrealistic conclusions. Moreover, it is not uncommon to consider that the effect of one or more covariates might change over time. The model proposed by @aalen1989linear provides a flexible way to tackle these issues. In Aalen's model the effect of the covariate on the hazard function at time t is additive (rather than multiplicative as in the Cox model). In other words, the hazard function at time t is a linear function of the covariates:
-$$h(t,x,\mathbb{\beta(t)}) =  \beta_0(t)+  \beta_1(t)x_1+...+ \beta_p(t)x_p.$$
+$$h(t,x,\beta(t)) =  \beta_0(t)+  \beta_1(t)x_1+...+ \beta_p(t)x_p.$$
 
 Each coefficient is a function of time: as such, the model is fully nonparametric. At time $t$, the coefficient function describes the variation with respect to the baseline hazard function induced by a unit change in the covariates. 
 
